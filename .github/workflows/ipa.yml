@@ -1,0 +1,69 @@
+name: Build unsigned IPA
+
+on:
+  push:
+    branches: [main]
+    paths: ["ios/**", "web/**", ".github/workflows/ipa.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ipa
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Bundle offline copy of the page
+        run: |
+          ./build-site.sh
+          cp _site/index.html ios/IMCDaily/offline.html
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build (no signing)
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -project IMCDaily.xcodeproj \
+            -scheme IMCDaily \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tail -n 40
+          test -d build/Build/Products/Release-iphoneos/IMCDaily.app
+
+      - name: Package IPA
+        run: |
+          mkdir -p Payload
+          cp -R ios/build/Build/Products/Release-iphoneos/IMCDaily.app Payload/
+          zip -qry IMCDaily.ipa Payload
+          ls -lh IMCDaily.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: IMCDaily-ipa
+          path: IMCDaily.ipa
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(grep MARKETING_VERSION ios/project.yml | head -1 | sed -E 's/.*"(.*)".*/\1/')
+          TAG="v${VERSION}-build${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" IMCDaily.ipa \
+            --title "IMC Daily ${VERSION} (build ${GITHUB_RUN_NUMBER})" \
+            --notes "Unsigned IPA. Sign and install it with Feather." \
+            --latest

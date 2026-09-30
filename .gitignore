@@ -1,0 +1,7 @@
+_site/
+ios/build/
+ios/*.xcodeproj/
+ios/IMCDaily/offline.html
+Payload/
+*.ipa
+.DS_Store

@@ -1,0 +1,712 @@
+<title>IMC Daily</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a single graph-paper column; home dashboard, then one question at a time like an answer sheet */
+:root{
+  --paper:#f5f7fb; --sheet:#ffffff; --ink:#15192b; --pencil:#5b6380; --grid:#e3e8f3;
+  --line:#d3d9e8; --accent:#2a47c4; --accent-ink:#ffffff; --accent-soft:#e6ebfc;
+  --ok:#17794a; --ok-soft:#e1f3ea; --bad:#b3261e; --bad-soft:#fbe7e5; --skip:#8a6d0b; --skip-soft:#faf1d4;
+  --f-ui:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-math:"STIX Two Text", "Cambria Math", "Times New Roman", serif;
+  --f-code:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#10131d; --sheet:#181c2a; --ink:#e8ebf5; --pencil:#9aa2bf; --grid:#1b2031;
+  --line:#2b3248; --accent:#8fa3ff; --accent-ink:#0d1020; --accent-soft:#232b4d;
+  --ok:#5fd39a; --ok-soft:#15301f; --bad:#ff8a80; --bad-soft:#3a1a1a; --skip:#e7c65a; --skip-soft:#352c10;
+  color-scheme:dark }}
+:root[data-theme="dark"]{
+  --paper:#10131d; --sheet:#181c2a; --ink:#e8ebf5; --pencil:#9aa2bf; --grid:#1b2031;
+  --line:#2b3248; --accent:#8fa3ff; --accent-ink:#0d1020; --accent-soft:#232b4d;
+  --ok:#5fd39a; --ok-soft:#15301f; --bad:#ff8a80; --bad-soft:#3a1a1a; --skip:#e7c65a; --skip-soft:#352c10;
+  color-scheme:dark }
+*{box-sizing:border-box}
+body{
+  background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+  color:var(--ink); font-family:var(--f-ui); font-size:17px; line-height:1.55;
+}
+.wrap{max-width:680px;margin:0 auto;padding-inline:16px;padding-block:24px 56px;display:flex;flex-direction:column;gap:20px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+h1{font-size:28px;line-height:1.1;margin:0;letter-spacing:-.01em}
+h1 small{display:block;font-size:13px;font-weight:400;color:var(--pencil);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.stats{display:flex;gap:18px;font-variant-numeric:tabular-nums}
+.stat{display:flex;flex-direction:column;align-items:flex-end}
+.stat b{font-size:22px;line-height:1}
+.stat span{font-size:12px;color:var(--pencil);text-transform:uppercase;letter-spacing:.06em}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:22px 20px;display:flex;flex-direction:column;gap:14px}
+.sheet h2{margin:0;font-size:20px}
+.muted{color:var(--pencil)}
+.label{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--pencil);margin:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);padding:10px 16px;min-height:44px}
+input{font:inherit;padding:10px 12px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--paper);color:var(--ink);flex:1;min-width:0}
+input:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+button.ghost{background:transparent}
+button:disabled{opacity:.5;cursor:default}
+.topics{display:flex;flex-direction:column}
+.topic{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px 0;border-top:1px solid var(--line);align-items:center}
+.topic:first-child{border-top:0}
+.topic .name{font-weight:700}
+.topic .note{grid-column:1/-1;font-size:14px;color:var(--pencil)}
+.chip{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.chip.learned{background:var(--accent-soft);color:var(--accent)}
+.chip.warm{background:var(--ok-soft);color:var(--ok)}
+.chip.locked{background:transparent;color:var(--pencil);border:1px dashed var(--line)}
+.acc{font-size:14px;font-variant-numeric:tabular-nums;color:var(--pencil)}
+.drill{display:flex;flex-wrap:wrap;gap:8px}
+.drill button{min-height:38px;padding:6px 12px;font-size:15px}
+/* question */
+.qtop{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.bar{height:6px;border-radius:99px;background:var(--grid);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.prompt{font-family:var(--f-math);font-size:23px;line-height:1.7}
+.prompt i,.math i{font-style:italic}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-size:.92em;line-height:1.15;margin:0 .12em}
+.fr>span:first-child{border-bottom:1.5px solid currentColor;padding:0 .18em}
+.fr>span:last-child{padding:0 .18em}
+sup{font-size:.68em;line-height:0}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;align-items:center;gap:14px;text-align:left;padding:10px 14px;font-family:var(--f-math);font-size:21px}
+.opt .let{flex:none;width:34px;height:24px;border-radius:12px;border:1.5px solid var(--pencil);font-family:var(--f-ui);font-size:13px;font-weight:700;display:grid;place-items:center;color:var(--pencil)}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.right{background:var(--ok-soft);border-color:var(--ok)}
+.opt.right .let{background:var(--ok);border-color:var(--ok);color:var(--sheet)}
+.opt.wrong{background:var(--bad-soft);border-color:var(--bad)}
+.opt.wrong .let{background:var(--bad);border-color:var(--bad);color:var(--sheet)}
+.opt:disabled{opacity:1;cursor:default}
+.feedback{border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.feedback.ok{background:var(--ok-soft)} .feedback.bad{background:var(--bad-soft)} .feedback.skip{background:var(--skip-soft)} .feedback.hint{background:var(--accent-soft)}
+.feedback strong.ok{color:var(--ok)} .feedback strong.bad{color:var(--bad)} .feedback strong.skip{color:var(--skip)}
+.feedback .math{font-family:var(--f-math);font-size:19px;line-height:1.7}
+/* results */
+.score{font-size:44px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.tally{display:flex;gap:16px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.tally span b{margin-right:4px}
+.codebox{font-family:var(--f-code);font-size:14px;line-height:1.5;background:var(--paper);border:1px dashed var(--pencil);border-radius:10px;padding:14px;word-break:break-word;white-space:pre-wrap;user-select:all}
+.review{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.review li{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:baseline;font-size:15px;padding:6px 0;border-top:1px solid var(--line)}
+.review li:first-child{border-top:0}
+.mk{font-weight:700}
+.mk.C{color:var(--ok)} .mk.W{color:var(--bad)} .mk.S{color:var(--skip)}
+.foot{font-size:13px;color:var(--pencil);text-align:center}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1><small>Intermediate Maths Challenge</small>IMC Daily</h1>
+    <div class="stats">
+      <div class="stat"><b id="streak">0</b><span>day streak</span></div>
+      <div class="stat"><b id="countdown">0</b><span>days to IMC</span></div>
+    </div>
+  </header>
+
+  <main id="app"></main>
+
+  <p class="foot">Challenge day: Wednesday 27 January 2027. No calculator. Work on paper.</p>
+</div>
+
+<script>
+/*GEN-START*/
+const VERSION = 3;
+
+// ---------- seeded random ----------
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function makeRng(seed){const r=mulberry32(seed);const R={next:r,int:(a,b)=>a+Math.floor(r()*(b-a+1)),pick:arr=>arr[Math.floor(r()*arr.length)],shuffle:arr=>{const x=arr.slice();for(let i=x.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x}};return R}
+
+// ---------- maths notation helpers ----------
+const fr=(n,d)=>`<span class="fr"><span>${n}</span><span>${d}</span></span>`;
+const X='<i>x</i>', A='<i>a</i>', B='<i>b</i>';
+const sq=(v,p=2)=>`${v}<sup>${p}</sup>`;
+const deg=v=>`${v}°`;
+const fmtNum=v=>Number.isInteger(v)?String(v):String(Math.round(v*100)/100);
+
+// Build 5 options from an answer and candidate wrong answers.
+function choices(rng, ans, wrongs, fmt=fmtNum){
+  const a=fmt(ans); const seen=new Set([a]); const out=[];
+  const add=w=>{ if(w===undefined||w===null) return; if(typeof w==='number'&&(!isFinite(w)||(typeof ans==='number'&&ans>=0&&w<0))) return; const s=fmt(w); if(!seen.has(s)){seen.add(s);out.push(s)} };
+  wrongs.forEach(add);
+  if(typeof ans==='number'){ for(const d of [1,-1,2,-2,3,-3,4,5,6,-4,8,10]){ if(out.length>=6)break; add(ans+d) } }
+  const picked=rng.shuffle(out.slice(0,6)).slice(0,4);
+  const opts=rng.shuffle([a,...picked]);
+  return {options:opts, correct:opts.indexOf(a)};
+}
+
+// ---------- topics ----------
+// status: 'learned' = taught (always on), 'warm' = already solid, 'locked' = needs an unlock password from Claude.
+// KEYS: base64 of each password written backwards (Claude decodes these to hand out passwords).
+const TOPICS = {
+ sq:{name:'Squaring expressions', group:'Algebra', status:'learned', note:'Given x + 1/x (or a + b and ab), find the squared version.', gen:genSq},
+ ds:{name:'Difference of two squares', group:'Algebra', status:'locked', note:'a² − b² = (a + b)(a − b).', gen:genDs},
+ sv:{name:'Two unknowns', group:'Algebra', status:'locked', note:'Add or subtract the equations instead of solving fully.', gen:genSv},
+ cq:{name:'Consecutive numbers', group:'Algebra', status:'locked', note:'Use the middle number.', gen:genCq},
+ ap:{name:'Arithmetic sequences', group:'Algebra', status:'locked', note:'Find the common difference first.', gen:genAp},
+ ix:{name:'Index laws', group:'Number', status:'locked', note:'Write everything as a power of the same base.', gen:genIx},
+ sd:{name:'Surds', group:'Number', status:'locked', note:'Simplify square roots and expand brackets with them.', gen:genSd},
+ rd:{name:'Recurring decimals', group:'Number', status:'locked', note:'Turn recurring decimals into fractions.', gen:genRd},
+ fa:{name:'Fraction sums', group:'Number', status:'locked', note:'Look for terms that cancel.', gen:genFa},
+ nf:{name:'Counting factors', group:'Number', status:'locked', note:'Use the prime factorisation.', gen:genNf},
+ fz:{name:'Zeros at the end of factorials', group:'Number', status:'locked', note:'Count the factors of 5.', gen:genFz},
+ lcm:{name:'Remainders and LCM', group:'Number', status:'locked', note:'One more than a multiple of the LCM.', gen:genLcm},
+ ud:{name:'Units digits of powers', group:'Number', status:'warm', note:'Find the repeating cycle of last digits.', gen:genUd},
+ np:{name:'Prime numbers', group:'Number', status:'warm', note:'Check each candidate for small factors.', gen:genNp},
+ pc:{name:'Percentage changes', group:'Number', status:'warm', note:'Percentage changes multiply, they do not cancel.', gen:genPc},
+ mn:{name:'Means and totals', group:'Number', status:'warm', note:'Work with totals, not averages.', gen:genMn},
+ pt:{name:'Pythagorean triples', group:'Geometry', status:'locked', note:'3, 4, 5 and 5, 12, 13 and their multiples.', gen:genPt},
+ eq:{name:'Equilateral triangle area', group:'Geometry', status:'locked', note:'Area = (√3 ÷ 4) × side².', gen:genEq},
+ sh:{name:'Circles and squares', group:'Geometry', status:'locked', note:'Shaded areas between circles and squares.', gen:genSh},
+ sc:{name:'Similar shapes', group:'Geometry', status:'locked', note:'Areas scale by k², volumes by k³.', gen:genSc},
+ ca:{name:'Clock angles', group:'Geometry', status:'locked', note:'The hour hand moves too.', gen:genCa},
+ ra:{name:'Angle ratios', group:'Geometry', status:'warm', note:'Share 180° between the parts.', gen:genRa},
+ pg:{name:'Regular polygons', group:'Geometry', status:'warm', note:'Exterior angles add to 360°.', gen:genPg},
+ st:{name:'Staircase counting', group:'Counting', status:'locked', note:'Build up from small cases.', gen:genSt},
+ hs:{name:'Handshakes and pairs', group:'Counting', status:'locked', note:'Count pairs, then avoid double counting.', gen:genHs},
+ ar:{name:'Arranging digits', group:'Counting', status:'warm', note:'Multiply the choices for each position.', gen:genAr},
+ pb:{name:'Dice probability', group:'Counting', status:'warm', note:'There are 36 equally likely outcomes.', gen:genPb},
+ dw:{name:'Days of the week', group:'Counting', status:'locked', note:'Remainders when dividing by 7.', gen:genDw},
+ as:{name:'Average speed', group:'Rates', status:'warm', note:'Total distance over total time.', gen:genAs},
+ wk:{name:'Working together', group:'Rates', status:'locked', note:'Add the rates, not the times.', gen:genWk},
+};
+const KEYS = {ds:'cmVodGVvbg==',pt:'c3N1YWc=',ca:'bm90d2Vu',eq:'Z25pcnV0',fz:'dGFtcmVm',lcm:'bmFqdW5hbWFy',st:'aWNjYW5vYmlm',nf:'ZWxvb2I=',rd:'ZWNhbGV2b2w=',ix:'cmVpcGFu',sd:'emluYmllbA==',sv:'bm5hbWVpcg==',cq:'cm90bmFj',ap:'cmVscGVr',sc:'ZWNhbHBhbA==',sh:'cmVsdWU=',hs:'dHJlYmxpaA==',dw:'c2V0cmFjc2Vk',wk:'YWl0YXB5aA==',fa:'bGFjc2Fw'};
+
+function genSq(rng, force){
+  const v = force || rng.pick(['plus','plus','minus','minus','ab','ab','cube']);
+  if(v==='plus'){ const k=rng.int(3,10), ans=k*k-2;
+    return {variant:'plus', prompt:`If ${X} + ${fr(1,X)} = ${k}, what is ${sq(X)} + ${fr(1,sq(X))}?`, ans, wrongs:[k*k,k*k+2,k*k-1,2*k-2,k*k-4],
+      hint:`Square both sides. The two middle pieces are ${X} × ${fr(1,X)} = 1, twice.`,
+      explain:`(${X} + ${fr(1,X)})${'<sup>2</sup>'} = ${sq(X)} + 2 + ${fr(1,sq(X))} = ${k}<sup>2</sup> = ${k*k}. Take off 2: <b>${ans}</b>.`}; }
+  if(v==='minus'){ const k=rng.int(2,9), ans=k*k+2;
+    return {variant:'minus', prompt:`If ${X} − ${fr(1,X)} = ${k}, what is ${sq(X)} + ${fr(1,sq(X))}?`, ans, wrongs:[k*k-2,k*k,k*k+1,2*k+2,k*k+4],
+      hint:`With a minus, the middle pieces are −1 and −1.`,
+      explain:`(${X} − ${fr(1,X)})<sup>2</sup> = ${sq(X)} − 2 + ${fr(1,sq(X))} = ${k*k}. Add 2 back: <b>${ans}</b>.`}; }
+  if(v==='ab'){ const s=rng.int(5,13), p=rng.int(2,Math.floor(s*s/4)), ans=s*s-2*p;
+    return {variant:'ab', prompt:`If ${A} + ${B} = ${s} and ${A}${B} = ${p}, what is ${sq(A)} + ${sq(B)}?`, ans, wrongs:[s*s+2*p,s*s-p,s*s,s*s-4*p,s*s-2*p+2],
+      hint:`Square ${A} + ${B}. The middle pieces make 2${A}${B}.`,
+      explain:`(${A} + ${B})<sup>2</sup> = ${sq(A)} + 2${A}${B} + ${sq(B)}, so ${s*s} = ${sq(A)} + ${sq(B)} + ${2*p}. That gives <b>${ans}</b>.`}; }
+  const k=rng.int(2,5), ans=k*k*k-3*k;
+  return {variant:'cube', stretch:true, prompt:`Stretch: if ${X} + ${fr(1,X)} = ${k}, what is ${sq(X,3)} + ${fr(1,sq(X,3))}?`, ans, wrongs:[k*k*k,k*k*k-k,k*k*k+3*k,k*k-2,k*k*k-2],
+    hint:`Cube both sides. The middle terms add up to 3(${X} + ${fr(1,X)}).`,
+    explain:`(${X} + ${fr(1,X)})<sup>3</sup> = ${sq(X,3)} + ${fr(1,sq(X,3))} + 3(${X} + ${fr(1,X)}), so ${k*k*k} = answer + ${3*k}. Answer: <b>${ans}</b>.`};
+}
+
+function genDs(rng){
+  const v=rng.pick(['diff','finda']);
+  if(v==='diff'){ const n=rng.pick([20,30,40,50,60,70,80,100,200]), d=rng.int(1,9), a=n+d, b=n-d, ans=a*a-b*b;
+    return {variant:'diff', prompt:`What is ${a}<sup>2</sup> − ${b}<sup>2</sup>? (Try not to square either number.)`, ans, wrongs:[(a-b)*(a-b),2*n*d,a+b,ans+(a-b)*(a-b),ans/2],
+      hint:`Difference of two squares: ${sq(A)} − ${sq(B)} = (${A} + ${B})(${A} − ${B}).`,
+      explain:`(${a} + ${b})(${a} − ${b}) = ${a+b} × ${a-b} = <b>${ans}</b>.`}; }
+  { const b=rng.int(1,12), d=rng.int(1,6), a=b+d, q=a*a-b*b;
+    return {variant:'finda', prompt:`If ${A} − ${B} = ${d} and ${sq(A)} − ${sq(B)} = ${q}, what is ${A}?`, ans:a, wrongs:[b,a+b,q/d,d,a+1],
+      hint:`Factorise ${sq(A)} − ${sq(B)} to find ${A} + ${B} first.`,
+      explain:`${q} = (${A} + ${B}) × ${d}, so ${A} + ${B} = ${a+b}. Add this to ${A} − ${B} = ${d}: 2${A} = ${2*a}, so ${A} = <b>${a}</b>.`}; }
+}
+
+const fracStr=(n,d)=>{const g=(a,b)=>b?g(b,a%b):a; if(d<0){n=-n;d=-d} const k=g(Math.abs(n),d)||1; n/=k; d/=k; return d===1?String(n):fr(n,d)};
+const isPrime=n=>{if(n<2)return false; for(let i=2;i*i<=n;i++) if(n%i===0) return false; return true};
+
+function genNp(rng){
+  const a=rng.int(10,70), b=a+rng.int(12,24); const ps=[]; for(let n=a+1;n<b;n++) if(isPrime(n)) ps.push(n);
+  const odd=[]; for(let n=a+1;n<b;n++) if(n%2&&!isPrime(n)) odd.push(n);
+  const trap=odd.length?rng.pick(odd):9;
+  if(rng.next()<0.6){ const ans=ps.reduce((x,y)=>x+y,0);
+    return {variant:'sum', prompt:`What is the sum of all the prime numbers between ${a} and ${b}?`, ans, wrongs:[ans+trap, ans-ps[ps.length-1], ans-ps[0], ans+(odd[1]||15), ans+2],
+      hint:`Only odd numbers can be prime here. Check each one for factors 3, 5 and 7.`,
+      explain:`The primes are ${ps.join(', ')}. Their sum is <b>${ans}</b>.`}; }
+  const ans=ps.length;
+  return {variant:'count', prompt:`How many prime numbers are there between ${a} and ${b}?`, ans, wrongs:[ans+1,ans-1,ans+2,ans+odd.length,Math.floor((b-a)/2)],
+    hint:`List the odd numbers and cross out multiples of 3, 5 and 7.`,
+    explain:`The primes are ${ps.join(', ')}, so there are <b>${ans}</b>.`};
+}
+
+function genAr(rng){
+  const n=rng.int(4,6), k=rng.int(2,Math.min(4,n)); const P=(m,r)=>{let x=1;for(let i=0;i<r;i++)x*=m-i;return x};
+  const digits=Array.from({length:n},(_,i)=>i+1).join(', ');
+  if(rng.next()<0.5){ const ans=P(n,k);
+    return {variant:`${n}p${k}`, prompt:`How many different ${k}-digit numbers can be made from the digits ${digits}, using each digit at most once?`, ans,
+      wrongs:[n**k, ans/2, P(n,k)/P(k,k), ans+n, P(n,k-1)],
+      hint:`How many choices for the first digit? Then the second?`,
+      explain:`${Array.from({length:k},(_,i)=>n-i).join(' × ')} = <b>${ans}</b>.`}; }
+  const ev=Math.floor(n/2), ans=ev*P(n-1,k-1);
+  return {variant:`${n}p${k}even`, prompt:`How many different ${k}-digit <b>even</b> numbers can be made from the digits ${digits}, using each digit at most once?`, ans,
+    wrongs:[P(n,k), P(n,k)/2, ev*(n-1)**(k-1), ans+ev, (n-ev)*P(n-1,k-1)],
+    hint:`Choose the last digit first. It must be even.`,
+    explain:`Last digit: ${ev} even choices. The other ${k-1} places: ${Array.from({length:k-1},(_,i)=>n-1-i).join(' × ')||'1'}. Total: <b>${ans}</b>.`};
+}
+
+function genPb(rng){
+  const tests=[
+    ...[4,5,6,7,8,9,10].map(t=>[`the total is ${t}`,(a,b)=>a+b===t,`sum${t}`]),
+    [`the total is a prime number`,(a,b)=>isPrime(a+b),'prime'],
+    [`the product is even`,(a,b)=>(a*b)%2===0,'prodeven'],
+    [`both dice show the same number`,(a,b)=>a===b,'double'],
+    [`the two numbers differ by 2`,(a,b)=>Math.abs(a-b)===2,'diff2'],
+    [`the total is more than 8`,(a,b)=>a+b>8,'gt8'],
+    [`at least one die shows a 6`,(a,b)=>a===6||b===6,'six'],
+  ];
+  const [txt,f,id]=rng.pick(tests); let ans=0; for(let a=1;a<=6;a++)for(let b=1;b<=6;b++) if(f(a,b)) ans++;
+  return {variant:id, prompt:`Two fair six-sided dice are rolled. What is the probability that ${txt}?`, ans, fmt:c=>fracStr(c,36),
+    wrongs:[ans+1,ans-1,ans+2,ans-2,ans*2,36-ans],
+    hint:`Draw a 6 × 6 grid of outcomes and count the ones that work.`,
+    explain:`${ans} of the 36 equally likely outcomes work, so the probability is ${fr(ans,36)} = <b>${fracStr(ans,36)}</b>.`};
+}
+
+function genNf(rng){
+  const opts=[[2,3],[2,5],[3,5],[2,7],[2,3,5],[2,3,7]]; let N,ex,ps;
+  do{ ps=rng.pick(opts); ex=ps.map(()=>rng.int(1,4)); N=ps.reduce((x,p,i)=>x*p**ex[i],1) }while(N>1000||N<20);
+  const ans=ex.reduce((x,e)=>x*(e+1),1); const sum=ex.reduce((x,e)=>x+e,0);
+  const pf=ps.map((p,i)=>ex[i]>1?`${p}<sup>${ex[i]}</sup>`:p).join(' × ');
+  return {variant:String(N), prompt:`How many factors does ${N} have? (Count 1 and ${N} as well.)`, ans, wrongs:[ans-2,sum,ans+1,ex.reduce((x,e)=>x*e,1)+1,ans*2],
+    hint:`Write ${N} as a product of primes. Each prime's power can be 0, 1, 2 ... up to its exponent.`,
+    explain:`${N} = ${pf}. The number of factors is ${ex.map(e=>`(${e} + 1)`).join(' × ')} = <b>${ans}</b>.`};
+}
+
+function genRd(rng){
+  if(rng.next()<0.55){ let ab; do{ab=rng.int(10,98)}while(ab%11===0);
+    const dec=`0.${String(ab).repeat(4)}...`;
+    return {variant:'two', prompt:`Write ${dec} as a fraction in its simplest form.`, ans:[ab,99], fmt:([n,d])=>fracStr(n,d),
+      wrongs:[[ab,100],[ab,90],[ab,999],[ab+1,99],[Math.floor(ab/10),9],[ab-1,99],[ab,98]],
+      hint:`Call it N. Then 100N − N is a whole number.`,
+      explain:`100N − N = ${ab}, so 99N = ${ab} and N = ${fr(ab,99)} = <b>${fracStr(ab,99)}</b>.`}; }
+  let a,b; do{a=rng.int(1,9);b=rng.int(1,9)}while(a===b);
+  const dec=`0.${a}${String(b).repeat(5)}...`, top=10*a+b-a;
+  return {variant:'mixed', prompt:`Write ${dec} as a fraction in its simplest form.`, ans:[top,90], fmt:([n,d])=>fracStr(n,d),
+    wrongs:[[10*a+b,99],[10*a+b,90],[b,9],[top,99],[10*a+b,100],[top+1,90],[top,100]],
+    hint:`Call it N. Compare 100N and 10N: the recurring parts line up.`,
+    explain:`100N = ${10*a+b}.${b}${b}${b}... and 10N = ${a}.${b}${b}${b}..., so 90N = ${top} and N = ${fr(top,90)} = <b>${fracStr(top,90)}</b>.`};
+}
+
+function genIx(rng){
+  if(rng.next()<0.6){ const [b,b2,b3]=rng.pick([[2,4,8],[3,9,27],[5,25,125]]); let x,y,z,n; do{x=rng.int(2,12);y=rng.int(1,6);z=rng.int(1,4);n=x+2*y-3*z}while(n<1);
+    return {variant:String(b), prompt:`If ${b}<sup>${x}</sup> × ${b2}<sup>${y}</sup> ÷ ${b3}<sup>${z}</sup> = ${b}<sup><i>n</i></sup>, what is <i>n</i>?`, ans:n,
+      wrongs:[x+y-z, x+2*y+3*z, n+2, x+2*y-z, x*y-z],
+      hint:`${b2} = ${b}<sup>2</sup> and ${b3} = ${b}<sup>3</sup>.`,
+      explain:`${b2}<sup>${y}</sup> = ${b}<sup>${2*y}</sup> and ${b3}<sup>${z}</sup> = ${b}<sup>${3*z}</sup>. So <i>n</i> = ${x} + ${2*y} − ${3*z} = <b>${n}</b>.`}; }
+  const k=rng.pick([2,3,4,5]), m=rng.int(3,20), pw=(base,e)=>`${base}<sup>${e}</sup>`;
+  return {variant:`rep${k}`, prompt:`What is ${Array(k).fill(pw(k,m)).join(' + ')}?`, ans:pw(k,m+1), fmt:v=>v,
+    wrongs:[pw(k,k*m), pw(k*k,m), pw(k,m+k), pw(k*k,k*m), pw(k,m*m)],
+    hint:`${k} lots of something is ${k} × that thing.`,
+    explain:`${k} × ${pw(k,m)} = ${pw(k,1)} × ${pw(k,m)} = <b>${pw(k,m+1)}</b>.`};
+}
+
+function simpSurd(n){let o=1,i=n;for(let f=2;f*f<=i;f++) while(i%(f*f)===0){i/=f*f;o*=f} return [o,i]}
+const surd=(o,i)=>i===1?String(o):(o===1?`√${i}`:`${o}√${i}`);
+function genSd(rng){
+  if(rng.next()<0.5){ let m,n; do{m=rng.pick([2,3,5,6,7]);n=rng.pick([2,3,5,6,7,10])}while(m===n||Math.sqrt(m*n)%1===0);
+    const [o,i]=simpSurd(m*n), s=`${m+n} + ${surd(2*o,i)}`;
+    return {variant:`${m}-${n}`, prompt:`Expand (√${m} + √${n})<sup>2</sup>.`, ans:s, fmt:v=>v,
+      wrongs:[`${m+n}`, `${m+n} + ${surd(o,i)}`, `${m*n} + ${surd(2,m+n)}`, `${m+n+2*m*n}`, `${m+n} + ${surd(4*o,i)}`],
+      hint:`It is (√${m} + √${n})(√${m} + √${n}). The middle pieces are √${m} × √${n}, twice.`,
+      explain:`${m} + 2√${m*n} + ${n} = <b>${s}</b>${o>1?` (since √${m*n} = ${surd(o,i)})`:''}.`}; }
+  let a,b,o,i; do{a=rng.int(2,12);b=rng.int(2,12);[o,i]=simpSurd(a*b)}while(o===1||i===1||a===b||o===i);
+  return {variant:`${a}x${b}`, prompt:`Simplify √${a} × √${b}.`, ans:surd(o,i), fmt:v=>v,
+    wrongs:[surd(i,o), `√${a+b}`, surd(2*o,i), surd(o*o,i), surd(o+1,i), `${a*b}`],
+    hint:`√${a} × √${b} = √${a*b}. Look for a square number that divides ${a*b}.`,
+    explain:`√${a*b} = √(${o*o} × ${i}) = <b>${surd(o,i)}</b>.`};
+}
+
+function genSv(rng){
+  if(rng.next()<0.6){ const A=rng.int(8,45), P=rng.int(8,45); const [p,q]=rng.pick([[3,2],[4,1],[5,3],[2,1]]);
+    const X=p*A+q*P, Y=q*A+p*P, ans=A+P;
+    return {variant:`${p}${q}`, prompt:`${p} apples and ${q} pears cost ${X}p. ${q} apples and ${p} pears cost ${Y}p. How much do 1 apple and 1 pear cost together?`, ans, fmt:v=>`${fmtNum(v)}p`,
+      wrongs:[Math.abs(X-Y), (X+Y)/2, A, P, ans+p+q],
+      hint:`Add the two statements together.`,
+      explain:`Adding: ${p+q} apples and ${p+q} pears cost ${X+Y}p. Divide by ${p+q}: <b>${ans}p</b>.`}; }
+  const a=rng.int(4,30), b=rng.int(2,a-1);
+  return {variant:'sumdiff', prompt:`Two numbers add up to ${a+b} and differ by ${a-b}. What is their product?`, ans:a*b,
+    wrongs:[(a+b)*(a-b), a*b+a-b, (a+b)*(a+b)/4, a*a, a*b-(a-b)],
+    hint:`Add the two facts: you get twice the larger number.`,
+    explain:`Larger = (${a+b} + ${a-b}) ÷ 2 = ${a}, smaller = ${b}. Product: <b>${a*b}</b>.`};
+}
+
+function genCq(rng){
+  const k=rng.pick([3,4,5,6,7]), m=rng.int(4,60), S=k*m+k*(k-1)/2, big=m+k-1;
+  return {variant:String(k), prompt:`The sum of ${k} consecutive whole numbers is ${S}. What is the largest of them?`, ans:big,
+    wrongs:[m, Math.round(S/k), big+1, big-1, Math.round(S/k)+k],
+    hint:`The mean of consecutive numbers is the middle value: ${S} ÷ ${k}.`,
+    explain:`${S} ÷ ${k} = ${fmtNum(S/k)} is the middle. The numbers are ${Array.from({length:k},(_,i)=>m+i).join(', ')}, so the largest is <b>${big}</b>.`};
+}
+
+function genAp(rng){
+  const a=rng.int(1,20), d=rng.int(2,9), t=rng.int(5,12), n=rng.int(20,60), tt=a+(t-1)*d, ans=a+(n-1)*d;
+  return {variant:`${t}-${n}`, prompt:`In an arithmetic sequence the 1st term is ${a} and the ${t}th term is ${tt}. What is the ${n}th term?`, ans,
+    wrongs:[a+n*d, n*d, ans-d, ans+d, tt*Math.round(n/t)],
+    hint:`From term 1 to term ${t} is ${t-1} steps.`,
+    explain:`Common difference: (${tt} − ${a}) ÷ ${t-1} = ${d}. The ${n}th term is ${a} + ${n-1} × ${d} = <b>${ans}</b>.`};
+}
+
+function genSc(rng){
+  const [p,q]=rng.pick([[1,2],[1,3],[2,3],[2,5],[3,4],[1,4]]);
+  if(rng.next()<0.6){ const A=p*p*rng.int(1,6)*4, ans=A*q*q/(p*p);
+    return {variant:`area${p}${q}`, prompt:`Two similar shapes have lengths in the ratio ${p} : ${q}. The smaller has area ${A} cm². What is the area of the larger?`, ans, fmt:v=>`${fmtNum(v)} cm²`,
+      wrongs:[A*q/p, A*q*q*q/(p*p*p), A*q*q/p, A+(q-p)*A, ans/2],
+      hint:`Areas scale by the square of the length ratio.`,
+      explain:`Scale factor ${fr(q,p)}, so areas multiply by (${fr(q,p)})<sup>2</sup> = ${fracStr(q*q,p*p)}. ${A} × ${fracStr(q*q,p*p)} = <b>${fmtNum(ans)} cm²</b>.`}; }
+  const V=p*p*p*rng.int(1,5)*2, ans=V*q*q*q/(p*p*p);
+  return {variant:`vol${p}${q}`, prompt:`Two similar solids have lengths in the ratio ${p} : ${q}. The smaller has volume ${V} cm³. What is the volume of the larger?`, ans, fmt:v=>`${fmtNum(v)} cm³`,
+    wrongs:[V*q*q/(p*p), V*q/p, V*q*q*q/p, ans/2, ans*2],
+    hint:`Volumes scale by the cube of the length ratio.`,
+    explain:`Volumes multiply by (${fr(q,p)})<sup>3</sup> = ${fracStr(q*q*q,p*p*p)}. ${V} × ${fracStr(q*q*q,p*p*p)} = <b>${fmtNum(ans)} cm³</b>.`};
+}
+
+function genSh(rng){
+  const r=rng.int(1,5), k=r*r, tm=(c,e)=>c===1?e:`${c}(${e})`;
+  if(rng.next()<0.5){ const ans=tm(k,'4 − π');
+    return {variant:`out${r}`, prompt:`A circle of radius ${r} fits exactly inside a square, touching all four sides. What is the area inside the square but outside the circle?`, ans, fmt:v=>v,
+      wrongs:[tm(k,'π − 2'), `${4*k} − π`, tm(2*k,'4 − π'), tm(k,'2 − π')+'', `${k}π`],
+      hint:`The square's side is the circle's diameter, ${2*r}.`,
+      explain:`Square: ${2*r}<sup>2</sup> = ${4*k}. Circle: π × ${r}<sup>2</sup> = ${k===1?'':k}π. Difference: <b>${ans}</b>.`}; }
+  const ans=tm(k,'π − 2');
+  return {variant:`in${r}`, prompt:`A square is drawn inside a circle of radius ${r}, with its four corners on the circle. What is the area inside the circle but outside the square?`, ans, fmt:v=>v,
+    wrongs:[tm(k,'4 − π'), `${k===1?'':k}π − ${4*k}`, tm(2*k,'π − 2'), tm(k,'π − 1'), `${k===1?'':k}π − ${k}`],
+    hint:`The square's diagonal is the diameter, ${2*r}. Area of a square = diagonal² ÷ 2.`,
+    explain:`Square: ${2*r}<sup>2</sup> ÷ 2 = ${2*k}. Circle: ${k===1?'':k}π. Difference: <b>${ans}</b>.`};
+}
+
+function genHs(rng){
+  const n=rng.int(6,25), v=rng.pick(['hands','diag','twice']);
+  if(v==='hands'){ const ans=n*(n-1)/2;
+    return {variant:'hands'+n, prompt:`${n} people meet, and every person shakes hands once with every other person. How many handshakes are there?`, ans, wrongs:[n*(n-1), n*n, ans-n, n*(n-3)/2, (n-1)*(n-1)],
+      hint:`Each person shakes ${n-1} hands, but each handshake involves two people.`,
+      explain:`${n} × ${n-1} ÷ 2 = <b>${ans}</b>.`}; }
+  if(v==='diag'){ const ans=n*(n-3)/2;
+    return {variant:'diag'+n, prompt:`How many diagonals does a polygon with ${n} sides have?`, ans, wrongs:[n*(n-1)/2, n*(n-3), n*(n-2)/2, ans+n, n*(n-3)/2-1],
+      hint:`From each corner you can draw a diagonal to every corner except itself and its two neighbours.`,
+      explain:`${n} × ${n-3} ÷ 2 = <b>${ans}</b>. Divide by 2 because each diagonal has two ends.`}; }
+  const ans=n*(n-1);
+  return {variant:'twice'+n, prompt:`In a league of ${n} teams, every team plays every other team twice (home and away). How many matches are played?`, ans, wrongs:[n*(n-1)/2, n*n, 2*n*n, ans-n, 2*(n-1)],
+    hint:`Count the pairs of teams, then double.`,
+    explain:`Pairs: ${n} × ${n-1} ÷ 2 = ${n*(n-1)/2}. Twice each: <b>${ans}</b>.`};
+}
+
+function genDw(rng){
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const s=rng.int(0,6), N=rng.int(40,1000), ans=(s+N)%7;
+  return {variant:String(N), prompt:`Today is ${days[s]}. What day of the week will it be in ${N} days' time?`, ans:days[ans], fmt:v=>v,
+    wrongs:[days[(ans+1)%7],days[(ans+6)%7],days[(s+N%10)%7],days[s],days[(ans+2)%7],days[(ans+5)%7]],
+    hint:`Every 7 days it is ${days[s]} again. Find the remainder when ${N} is divided by 7.`,
+    explain:`${N} = 7 × ${Math.floor(N/7)} + ${N%7}. So move ${N%7} day${N%7===1?'':'s'} on from ${days[s]}: <b>${days[ans]}</b>.`};
+}
+
+function genWk(rng){
+  const [a,b]=rng.pick([[2,3],[3,6],[2,6],[4,12],[1,2],[1,3],[2,2],[1,4],[4,6],[6,12],[3,12]]);
+  const ans=60*a*b/(a+b), who=rng.pick([['a hose','a tap'],['Ffion','Rhys'],['pump A','pump B']]);
+  return {variant:`${a}-${b}`, prompt:`On its own, ${who[0]} fills a tank in ${a} hour${a>1?'s':''}. On its own, ${who[1]} fills it in ${b} hours. How many minutes does it take using both together?`, ans, fmt:v=>`${fmtNum(v)} minutes`,
+    wrongs:[60*(a+b)/2, 60*(a+b), 60*Math.min(a,b)/2, ans+10, ans-10],
+    hint:`In one hour, the first does ${fr(1,a)} of the tank and the second ${fr(1,b)}.`,
+    explain:`Per hour: ${fr(1,a)} + ${fr(1,b)} = ${fracStr(a+b,a*b)} of the tank. So it takes ${fracStr(a*b,a+b)} hour${a*b===a+b?'':'s'} = <b>${fmtNum(ans)} minutes</b>.`};
+}
+
+function genFa(rng){
+  const n=rng.int(4,99);
+  return {variant:String(n), prompt:`What is ${fr(1,'1 × 2')} + ${fr(1,'2 × 3')} + ${fr(1,'3 × 4')} + ... + ${fr(1,`${n} × ${n+1}`)}?`, ans:[n,n+1], fmt:([p,q])=>fracStr(p,q),
+    wrongs:[[1,n+1],[n-1,n],[n,n+2],[n+1,n+2],[n,2*(n+1)]],
+    hint:`${fr(1,'2 × 3')} = ${fr(1,2)} − ${fr(1,3)}. Write every term like that.`,
+    explain:`Each term is ${fr(1,'k')} − ${fr(1,'k + 1')}. Almost everything cancels, leaving 1 − ${fr(1,n+1)} = <b>${fracStr(n,n+1)}</b>.`};
+}
+
+function genUd(rng){
+  const b=rng.pick([2,3,4,7,8,9,12,13,17]), n=rng.int(2001,2099);
+  const cyc=[]; let d=b%10; while(!cyc.includes(d)){cyc.push(d); d=(d*b)%10}
+  const L=cyc.length, r=n%L, ans=cyc[(n-1)%L];
+  return {variant:String(b), prompt:`What is the units digit of ${b}<sup>${n}</sup>?`, ans, wrongs:[...cyc, b%10, n%10, (ans+5)%10, 0],
+    hint:`Write out the last digits of ${b}<sup>1</sup>, ${b}<sup>2</sup>, ${b}<sup>3</sup>... until they repeat.`,
+    explain:`Last digits repeat every ${L}: ${cyc.join(', ')}. ${n} ÷ ${L} leaves remainder ${r}${r===0?`, which means the end of the cycle`:''}, so the digit is <b>${ans}</b>.`};
+}
+
+function genPc(rng){
+  const pctStr=x=>x===0?'No change':(x>0?`Increases by ${fmtNum(x)}%`:`Decreases by ${fmtNum(-x)}%`);
+  if(rng.next()<0.5){ const p=rng.pick([10,20,30,40,50]), ans=-(p*p)/100;
+    return {variant:'rect', prompt:`A rectangle's length is increased by ${p}% and its width is decreased by ${p}%. What happens to its area?`, ans, fmt:pctStr, wrongs:[0,-2*p,-p,-ans,-(p/10)],
+      hint:`Use multipliers: ${1+p/100} × ${1-p/100}.`,
+      explain:`${1+p/100} × ${fmtNum(1-p/100)} = ${fmtNum(1-p*p/10000)}, so the area <b>${pctStr(ans).toLowerCase()}</b>.`}; }
+  const [p,q]=rng.pick([[20,20],[25,20],[50,50],[10,10],[50,20],[20,25],[40,50],[25,40]]);
+  const net=Math.round(((100+p)*(100-q)/100-100)*100)/100;
+  return {variant:'price', prompt:`A price rises by ${p}%, then the new price falls by ${q}%. What is the overall change?`, ans:net, fmt:pctStr, wrongs:[p-q,0,-net,p+q,-(p*q/100),net+5],
+    hint:`Multiply the multipliers: ${fmtNum(1+p/100)} × ${fmtNum(1-q/100)}.`,
+    explain:`${fmtNum(1+p/100)} × ${fmtNum(1-q/100)} = ${fmtNum(1+net/100)}, so overall: <b>${pctStr(net).toLowerCase()}</b>.`};
+}
+
+function genMn(rng){
+  let n,m1,m2,rem; do{ n=rng.int(4,9); m1=rng.int(8,24); m2=m1+rng.pick([-3,-2,-1,1,2]); rem=n*m1-(n-1)*m2 }while(rem<=0||rem>200);
+  return {variant:'remove', prompt:`The mean of ${n} numbers is ${m1}. One number is removed, and the mean of the remaining ${n-1} numbers is ${m2}. What number was removed?`, ans:rem,
+    wrongs:[Math.abs(m1-m2), m1, rem+n, rem-n, (n-1)*m2],
+    hint:`Find the total before and after.`,
+    explain:`Total before: ${n} × ${m1} = ${n*m1}. Total after: ${n-1} × ${m2} = ${(n-1)*m2}. Removed: <b>${rem}</b>.`};
+}
+
+function genRa(rng){
+  const t=rng.pick([[1,2,3],[2,3,4],[1,3,5],[3,4,5],[2,3,5],[1,2,6],[4,5,6],[1,4,5],[2,5,8],[3,5,7]]);
+  const s=t[0]+t[1]+t[2], unit=180/s, big=rng.next()<0.7;
+  const target=big?Math.max(...t):Math.min(...t), ans=target*unit;
+  const others=t.map(x=>x*unit);
+  return {variant:big?'largest':'smallest', prompt:`The angles of a triangle are in the ratio ${t.join(' : ')}. What is the ${big?'largest':'smallest'} angle?`, ans, fmt:deg,
+    wrongs:[60,...others,unit,target*10,180-ans],
+    hint:`Add the parts. That many parts share 180°.`,
+    explain:`${t.join(' + ')} = ${s} parts, so each part is 180° ÷ ${s} = ${unit}°. The ${big?'largest':'smallest'} is ${target} × ${unit}° = <b>${ans}°</b>.`};
+}
+
+function genPg(rng){
+  const n=rng.pick([5,6,8,9,10,12,15,18,20,24,30,36]), ext=360/n, int=180-ext;
+  return {variant:String(n), prompt:`Each interior angle of a regular polygon is ${int}°. How many sides does it have?`, ans:n,
+    wrongs:[n-2,n+2,2*n,n/2,Math.round(int/10)],
+    hint:`Find one exterior angle first.`,
+    explain:`Exterior angle = 180° − ${int}° = ${ext}°. Exterior angles add to 360°, so 360 ÷ ${ext} = <b>${n}</b> sides.`};
+}
+
+function genAs(rng){
+  const [a,b]=rng.pick([[3,6],[4,12],[6,12],[10,15],[20,30],[12,24],[30,60],[40,60],[6,30],[15,30]]);
+  const ans=2*a*b/(a+b), who=rng.pick(['Seren','Cai','Megan','Dylan']);
+  return {variant:`${a}-${b}`, prompt:`${who} cycles to the park at ${a} km/h and comes back the same way at ${b} km/h. What is the average speed for the whole trip?`, ans, fmt:v=>`${fmtNum(v)} km/h`,
+    wrongs:[(a+b)/2, b-a, ans+1, ans-1, (a+b)/2+1],
+    hint:`Pick an easy distance, like ${a*b} km each way, and work out the total time.`,
+    explain:`Say each way is ${a*b} km. Times: ${b} h and ${a} h, so ${2*a*b} km in ${a+b} h. Average: <b>${fmtNum(ans)} km/h</b>, not ${fmtNum((a+b)/2)}.`};
+}
+
+// ----- locked topics (ready for later) -----
+function genPt(rng){
+  const base=[[3,4,5],[5,12,13],[8,15,17],[7,24,25],[20,21,29],[9,40,41]];
+  for(let tries=0;tries<50;tries++){
+    const t=rng.pick(base), k=rng.int(1,4), [a,b,c]=t.map(x=>x*k), P=a+b+c;
+    if(P>150) continue;
+    let count=0; for(let x=1;x<P;x++)for(let y=x;y<P;y++){const z=P-x-y; if(z>y&&x*x+y*y===z*z)count++}
+    if(count!==1) continue;
+    const ans=a*b/2;
+    return {variant:`${a}-${b}-${c}`, prompt:`A right-angled triangle has whole-number side lengths and a perimeter of ${P}. What is its area?`, ans,
+      wrongs:[a*b,a*c/2,b*c/2,ans+P,c*c/4],
+      hint:`Common triples: 3, 4, 5 and 5, 12, 13 and 8, 15, 17. Try multiples of them.`,
+      explain:`The sides are ${a}, ${b}, ${c} (${t.join(', ')} × ${k}). Area = ${a} × ${b} ÷ 2 = <b>${ans}</b>.`};
+  }
+  return genPt(rng);
+}
+function genCa(rng){
+  const h=rng.int(1,11), m=rng.pick([10,20,30,40,50,12,18,24,36,48]);
+  const raw=Math.abs(30*h-5.5*m), ans=Math.min(raw,360-raw);
+  const naive=Math.min(Math.abs(30*h-6*m),360-Math.abs(30*h-6*m));
+  return {variant:`${h}:${m}`, prompt:`What is the smaller angle between the hands of a clock at ${h}:${String(m).padStart(2,'0')}?`, ans, fmt:deg,
+    wrongs:[naive,360-ans,ans+15,ans-15,30*h],
+    hint:`The hour hand moves 0.5° every minute.`,
+    explain:`Minute hand: ${m} × 6° = ${6*m}°. Hour hand: ${h} × 30° + ${m} × 0.5° = ${30*h+0.5*m}°. Difference: <b>${ans}°</b>.`};
+}
+function genEq(rng){
+  const s=2*rng.int(2,7), k=s*s/4;
+  return {variant:String(s), prompt:`What is the area of an equilateral triangle with side ${s}?`, ans:`${k}√3`, fmt:v=>v,
+    wrongs:[`${s*s/2}√3`,`${s*s}√3`,`${k}`,`${k}√2`,`${s*s/2}`],
+    hint:`Split it in half: the height is found with Pythagoras.`,
+    explain:`Height = √(${s*s} − ${k}) = ${s/2}√3. Area = ½ × ${s} × ${s/2}√3 = <b>${k}√3</b>. In general, area = (√3 ÷ 4) × side².`};
+}
+function genFz(rng){
+  const n=rng.int(20,130); let ans=0,p=5; while(p<=n){ans+=Math.floor(n/p);p*=5}
+  return {variant:String(n), prompt:`How many zeros are at the end of ${n}! (that is ${n} × ${n-1} × ... × 2 × 1)?`, ans,
+    wrongs:[Math.floor(n/5),Math.floor(n/10),ans+1,ans-1,ans+2],
+    hint:`Each zero needs a factor of 5. Remember 25 and 125 give extra 5s.`,
+    explain:`Multiples of 5: ${Math.floor(n/5)}. Multiples of 25 add ${Math.floor(n/25)} more${n>=125?`, and 125 adds 1 more`:''}. Total: <b>${ans}</b>.`};
+}
+function genLcm(rng){
+  const [ds,p]=rng.pick([[[2,3,4,5,6],7],[[2,3,4],5],[[2,3,5],7],[[3,4,5],7],[[2,3,4,5],11],[[2,5],3],[[3,4],7],[[2,3],5]]);
+  const g=(a,b)=>b?g(b,a%b):a; const list=ds.length===2?ds.join(' and '):ds.slice(0,-1).join(', ')+' and '+ds[ds.length-1]; const L=ds.reduce((x,y)=>x*y/g(x,y));
+  let N=L+1; while(N%p!==0) N+=L;
+  return {variant:ds.join('')+'-'+p, prompt:`What is the smallest positive whole number that leaves remainder 1 when divided by each of ${list}, and is also divisible by ${p}?`, ans:N,
+    wrongs:[L+1,N+L,L*p+1,L-1,N-L],
+    hint:`It must be 1 more than a multiple of the LCM of ${ds.join(', ')}.`,
+    explain:`LCM = ${L}, so try ${L+1}, ${2*L+1}, ${3*L+1}... The first divisible by ${p} is <b>${N}</b>.`};
+}
+function genSt(rng){
+  const n=rng.int(5,12); const f=[0,1,2]; for(let i=3;i<=n+1;i++) f[i]=f[i-1]+f[i-2];
+  return {variant:String(n), prompt:`You climb a staircase of ${n} steps, taking 1 or 2 steps at a time. How many different ways can you reach the top?`, ans:f[n],
+    wrongs:[f[n-1],f[n+1],2*n,n,f[n]+1],
+    hint:`Ways to reach step n = ways to reach step n−1 + ways to reach step n−2.`,
+    explain:`Build up: 1, 2, 3, 5, 8, ... Each is the sum of the two before. Step ${n}: <b>${f[n]}</b>.`};
+}
+
+// ---------- make a question ----------
+function makeQuestion(topicId, seed){
+  const rng=makeRng(seed); const q=TOPICS[topicId].gen(rng);
+  const c=choices(rng, q.ans, q.wrongs, q.fmt||fmtNum);
+  return {...q, topic:topicId, seed, options:c.options, correct:c.correct};
+}
+
+// Pick topics for a session, favouring weak topics.
+function planSession(seed, stats, size=8, only, unlocked=[]){
+  const rng=makeRng(seed);
+  const learned=Object.keys(TOPICS).filter(t=>TOPICS[t].status==='learned'||unlocked.includes(t));
+  const warm=Object.keys(TOPICS).filter(t=>TOPICS[t].status==='warm');
+  const weight=t=>{const s=stats[t]||{c:0,w:0,s:0}; return 1+3*(s.w+s.s+1)/(s.c+s.w+s.s+2)};
+  const draw=(pool,k)=>{const out=[]; for(let i=0;i<k;i++){const tot=pool.reduce((a,t)=>a+weight(t),0); let r=rng.next()*tot; for(const t of pool){r-=weight(t); if(r<=0){out.push(t);break}} if(out.length<i+1) out.push(pool[pool.length-1])} return out};
+  let topics;
+  if(only) topics=Array(size).fill(only);
+  else topics=[...draw(learned,Math.ceil(size/2)),...draw(warm,Math.floor(size/2))];
+  topics=rng.shuffle(topics);
+  const seen=new Set();
+  return topics.map(t=>{ let q; for(let k=0;k<20;k++){ q=makeQuestion(t, Math.floor(rng.next()*2147483647)); if(!seen.has(q.prompt)) break } seen.add(q.prompt); return q });
+}
+function checkPassword(word){
+  const w=String(word||'').trim().toLowerCase(); if(!w) return null;
+  let enc; try{ enc=btoa(w.split('').reverse().join('')) }catch(e){ return null }
+  return Object.keys(KEYS).find(id=>KEYS[id]===enc)||null;
+}
+/*GEN-END*/
+
+// ---------- storage (optional, per browser) ----------
+const KEY='imcDaily.v1';
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}}
+function save(s){try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+let store=Object.assign({streak:0,lastDone:null,stats:{},lastCode:null,unlocked:[]},load());
+const isOn=id=>TOPICS[id].status!=='locked'||store.unlocked.includes(id);
+
+const todayStr=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const dayDiff=(a,b)=>Math.round((new Date(b+'T12:00')-new Date(a+'T12:00'))/864e5);
+
+function header(){
+  const t=todayStr();
+  const alive=store.lastDone&&dayDiff(store.lastDone,t)<=1;
+  document.getElementById('streak').textContent=alive?store.streak:0;
+  document.getElementById('countdown').textContent=Math.max(0,dayDiff(t,'2027-01-27'));
+}
+
+const app=document.getElementById('app');
+let S=null; // current session
+
+function home(){
+  header(); S=null;
+  const t=todayStr(), done=store.lastDone===t;
+  const groups=[...new Set(Object.values(TOPICS).map(t=>t.group))];
+  const onCount=Object.keys(TOPICS).filter(isOn).length;
+  const list=groups.map(g=>`<p class="label" style="margin-top:10px">${g}</p>`+Object.entries(TOPICS).filter(([,tp])=>tp.group===g).map(([id,tp])=>{
+    const s=store.stats[id]; const tot=s?s.c+s.w+s.s:0;
+    const chip=tp.status==='warm'?'<span class="chip warm">Warm-up</span>':isOn(id)?'<span class="chip learned">Learned</span>':'<span class="chip locked">Locked</span>';
+    return `<div class="topic"><span class="name">${tp.name}</span>${chip}<span class="note">${tp.note}${tot?` <span class="acc">· ${s.c} of ${tot} right so far</span>`:''}</span></div>`}).join('')).join('');
+  const drills=Object.entries(TOPICS).filter(([id])=>isOn(id)).map(([id,tp])=>`<button data-drill="${id}">${tp.name}</button>`).join('');
+  app.innerHTML=`
+  <div style="display:flex;flex-direction:column;gap:20px">
+    <section class="sheet">
+      <p class="label">${done?'Done for today':'Today'}</p>
+      <h2>${done?'Nice work. Streak kept.':'Daily practice: 8 questions'}</h2>
+      <p class="muted" style="margin:0">${done?'You can do extra practice below. Your last code is here if you still need to send it to Claude.':'About 10 minutes. Half on techniques you have learned, half warm-ups. Skip anything you cannot start, just like in the real IMC.'}</p>
+      ${done&&store.lastCode?`<div class="codebox" id="lastcode">${store.lastCode}</div>`:''}
+      <div class="row">
+        <button class="primary" id="go">${done?'Do another set':'Start today\'s practice'}</button>
+        ${done&&store.lastCode?'<button id="copylast">Copy code</button><span id="copied" class="muted"></span>':''}
+      </div>
+    </section>
+    <section class="sheet">
+      <p class="label">Drill one topic</p>
+      <div class="drill">${drills}</div>
+    </section>
+    <section class="sheet">
+      <p class="label">Unlock a topic</p>
+      <p class="muted" style="margin:0;font-size:15px">When you learn a new technique with Claude, you get a password for it.</p>
+      <form class="row" id="unlockForm"><input id="pw" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Password" aria-label="Topic password"><button type="submit">Unlock</button></form>
+      <p id="unlockMsg" class="muted" style="margin:0"></p>
+    </section>
+    <section class="sheet">
+      <p class="label">Topics · ${onCount} of ${Object.keys(TOPICS).length} open</p>
+      <div class="topics">${list}</div>
+    </section>
+  </div>`;
+  document.getElementById('go').onclick=()=>start(null);
+  document.getElementById('unlockForm').onsubmit=e=>{e.preventDefault(); const inp=document.getElementById('pw'), msg=document.getElementById('unlockMsg'); const id=checkPassword(inp.value);
+    if(!id){ msg.textContent='That password does not match any topic. Check the spelling.'; return }
+    if(store.unlocked.includes(id)){ msg.textContent=`${TOPICS[id].name} is already unlocked.`; return }
+    store.unlocked.push(id); save(store); home(); document.getElementById('unlockMsg').textContent=`Unlocked: ${TOPICS[id].name}. It will now appear in your daily practice.`};
+  app.querySelectorAll('[data-drill]').forEach(b=>b.onclick=()=>start(b.dataset.drill));
+  const cl=document.getElementById('copylast'); if(cl) cl.onclick=()=>copy(store.lastCode,document.getElementById('lastcode'),document.getElementById('copied'));
+}
+
+function start(only){
+  const seed=Math.floor(Math.random()*900000)+100000;
+  const size=only?6:8;
+  S={seed, only, mode:only?'drill':'daily', qs:planSession(seed, store.stats, size, only, store.unlocked), i:0, res:[], t0:Date.now(), qStart:Date.now(), hint:false};
+  question();
+}
+
+function question(){
+  const q=S.qs[S.i]; S.qStart=Date.now(); S.hint=false; S.answered=false;
+  const pct=(S.i/S.qs.length)*100;
+  app.innerHTML=`
+  <section class="sheet">
+    <div class="qtop"><span class="label">Question ${S.i+1} of ${S.qs.length} · ${TOPICS[q.topic].name}${q.stretch?' · stretch':''}</span>
+      <button class="ghost" id="quit" style="min-height:36px;padding:4px 12px;font-size:14px">End session</button></div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="prompt">${q.prompt}</div>
+    <div class="opts">${q.options.map((o,j)=>`<button class="opt" data-j="${j}"><span class="let">${'ABCDE'[j]}</span><span>${o}</span></button>`).join('')}</div>
+    <div id="fb"></div>
+    <div class="row" id="ctl"><button id="hint">Show hint</button><button id="skip">Skip</button></div>
+  </section>`;
+  app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>answer(+b.dataset.j));
+  document.getElementById('skip').onclick=()=>answer(-1);
+  document.getElementById('hint').onclick=e=>{S.hint=true;e.target.remove();document.getElementById('fb').innerHTML=`<div class="feedback hint"><span class="math">Hint: ${q.hint}</span></div>`};
+  document.getElementById('quit').onclick=()=>{ if(S.res.length) results(); else home() };
+  window.scrollTo(0,0);
+}
+
+function answer(j){
+  if(S.answered) return; S.answered=true;
+  const q=S.qs[S.i], secs=Math.round((Date.now()-S.qStart)/1000);
+  const mark=j<0?'S':(j===q.correct?'C':'W');
+  S.res.push({topic:q.topic, variant:q.variant, mark, secs, hint:S.hint, chose:j<0?null:q.options[j], ans:q.options[q.correct], seed:q.seed});
+  const st=store.stats[q.topic]||(store.stats[q.topic]={c:0,w:0,s:0}); st[mark.toLowerCase()]++; save(store);
+  app.querySelectorAll('.opt').forEach((b,k)=>{b.disabled=true; if(k===q.correct)b.classList.add('right'); if(k===j&&j!==q.correct)b.classList.add('wrong')});
+  const head=mark==='C'?'<strong class="ok">Correct</strong>':mark==='W'?`<strong class="bad">Not quite. The answer is ${q.options[q.correct]}.</strong>`:`<strong class="skip">Skipped. The answer is ${q.options[q.correct]}.</strong>`;
+  document.getElementById('fb').innerHTML=`<div class="feedback ${mark==='C'?'ok':mark==='W'?'bad':'skip'}">${head}<span class="math">${q.explain}</span></div>`;
+  const last=S.i===S.qs.length-1;
+  document.getElementById('ctl').innerHTML=`<button class="primary" id="next">${last?'See results':'Next question'}</button>`;
+  document.getElementById('next').onclick=()=>{ if(last) results(); else {S.i++; question()} };
+  document.getElementById('next').focus();
+}
+
+function mmss(s){return `${Math.floor(s/60)}m${String(s%60).padStart(2,'0')}s`}
+
+function buildCode(){
+  const total=Math.round((Date.now()-S.t0)/1000);
+  const c=S.res.filter(r=>r.mark==='C').length;
+  const items=S.res.map(r=>{
+    let s=`${r.topic}.${r.variant}:${r.mark}${r.hint?'+h':''}@${r.secs}s`;
+    if(r.mark==='W') s+=`(chose ${r.chose}; ans ${r.ans})`;
+    return s}).join(' ');
+  return `IMC${VERSION} ${todayStr()} ${S.mode}${S.only?'='+S.only:''} seed=${S.seed} u=${store.unlocked.join(',')||'none'} time=${mmss(total)} score=${c}/${S.res.length}${S.res.length<S.qs.length?` (stopped at ${S.res.length} of ${S.qs.length})`:''} | ${items}`;
+}
+
+function results(){
+  const code=buildCode();
+  const c=S.res.filter(r=>r.mark==='C').length, w=S.res.filter(r=>r.mark==='W').length, sk=S.res.filter(r=>r.mark==='S').length;
+  const t=todayStr();
+  if(S.mode==='daily'&&S.res.length===S.qs.length&&store.lastDone!==t){
+    store.streak=(store.lastDone&&dayDiff(store.lastDone,t)===1)?store.streak+1:1; store.lastDone=t;
+  }
+  store.lastCode=code; save(store); header();
+  const rows=S.res.map((r,k)=>`<li><span class="mk ${r.mark}">${r.mark==='C'?'✓':r.mark==='W'?'✗':'–'}</span><span>${k+1}. ${TOPICS[r.topic].name}${r.hint?' <span class="muted">(hint)</span>':''}</span><span class="muted" style="font-variant-numeric:tabular-nums">${r.secs}s</span></li>`).join('');
+  app.innerHTML=`
+  <div style="display:flex;flex-direction:column;gap:20px">
+  <section class="sheet">
+    <p class="label">${S.mode==='daily'?'Daily practice':'Topic drill'} finished</p>
+    <div class="score">${c} / ${S.res.length}</div>
+    <div class="tally"><span><b style="color:var(--ok)">${c}</b>right</span><span><b style="color:var(--bad)">${w}</b>wrong</span><span><b style="color:var(--skip)">${sk}</b>skipped</span></div>
+    <p class="label" style="margin-top:6px">Your code for Claude</p>
+    <div class="codebox" id="code">${code}</div>
+    <div class="row"><button class="primary" id="copy">Copy code</button><span id="copied" class="muted"></span></div>
+    <p class="muted" style="margin:0;font-size:15px">Paste this into your chat with Claude so it can track what to work on next.</p>
+  </section>
+  <section class="sheet">
+    <p class="label">Question by question</p>
+    <ul class="review">${rows}</ul>
+    <div class="row"><button id="home">Back to start</button></div>
+  </section></div>`;
+  document.getElementById('copy').onclick=()=>copy(code,document.getElementById('code'),document.getElementById('copied'));
+  document.getElementById('home').onclick=home;
+  window.scrollTo(0,0);
+}
+
+function copy(text, box, status){
+  try{ const h=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.copy; if(h){ h.postMessage(text); status.textContent='Copied'; return } }catch(e){}
+  const sel=()=>{const r=document.createRange();r.selectNodeContents(box);const s=getSelection();s.removeAllRanges();s.addRange(r)};
+  try{ navigator.clipboard.writeText(text).then(()=>{status.textContent='Copied'},()=>{sel();status.textContent='Selected. Press Ctrl+C to copy.'}) }
+  catch(e){ sel(); status.textContent='Selected. Press Ctrl+C to copy.' }
+}
+
+home();
+</script>
