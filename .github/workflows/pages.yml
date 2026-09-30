@@ -1,4 +1,5 @@
 name: Publish practice page
+# Deploys web/ to https://lewiscodeswebsites.github.io/imc-revision/
 
 on:
   push:
