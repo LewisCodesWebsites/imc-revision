@@ -127,7 +127,7 @@ private func inlineText(_ nodes: [MathNode], size: CGFloat) -> Text {
             if italic { piece = piece.italic() }
             result = result + piece
         case .sup(let inner):
-            result = result + inlineText(inner, size: size * 0.68).baselineOffset(size * 0.42)
+            result = result + Text("\u{200A}").font(mathFont(size, bold: false)) + inlineText(inner, size: size * 0.68).baselineOffset(size * 0.42)
         case .frac(let a, let b):
             result = result + inlineText(a, size: size) + Text("/").font(mathFont(size, bold: false)) + inlineText(b, size: size)
         }
@@ -181,7 +181,7 @@ private func tokenize(_ nodes: [MathNode], size: CGFloat) -> [MathToken] {
             }
             emitWord()
         case .sup(let inner):
-            append(inlineText(inner, size: size * 0.68).baselineOffset(size * 0.42))
+            append(Text("\u{200A}").font(mathFont(size, bold: false)) + inlineText(inner, size: size * 0.68).baselineOffset(size * 0.42))
         case .frac(let a, let b):
             flush()
             tokens.append(MathToken(kind: .frac(inlineText(a, size: size * 0.86), inlineText(b, size: size * 0.86)),
@@ -199,21 +199,53 @@ private struct SpaceBefore: LayoutValueKey {
     static let defaultValue: CGFloat = 0
 }
 
+/// Stacks numerator over denominator with a bar as wide as the wider of the two.
+private struct FractionLayout: Layout {
+    let size: CGFloat
+    private var gap: CGFloat { size * 0.1 }
+    private var bar: CGFloat { max(1, size * 0.055) }
+    private var pad: CGFloat { size * 0.1 }
+
+    private func measure(_ subviews: Subviews) -> (num: CGSize, den: CGSize, width: CGFloat) {
+        let num = subviews[0].sizeThatFits(.unspecified)
+        let den = subviews[1].sizeThatFits(.unspecified)
+        return (num, den, max(num.width, den.width) + pad * 2)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let m = measure(subviews)
+        return CGSize(width: m.width, height: m.num.height + gap + bar + gap + m.den.height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let m = measure(subviews)
+        subviews[0].place(at: CGPoint(x: bounds.midX, y: bounds.minY), anchor: .top, proposal: ProposedViewSize(m.num))
+        subviews[2].place(at: CGPoint(x: bounds.minX, y: bounds.minY + m.num.height + gap), anchor: .topLeading,
+                          proposal: ProposedViewSize(width: m.width, height: bar))
+        subviews[1].place(at: CGPoint(x: bounds.midX, y: bounds.minY + m.num.height + gap + bar + gap), anchor: .top,
+                          proposal: ProposedViewSize(m.den))
+    }
+
+    // Put the text baseline a little below the bar, like printed maths.
+    func explicitAlignment(of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize,
+                           subviews: Subviews, cache: inout ()) -> CGFloat? {
+        guard guide == .firstTextBaseline || guide == .lastTextBaseline else { return nil }
+        let m = measure(subviews)
+        return bounds.minY + m.num.height + gap + bar / 2 + size * 0.3
+    }
+}
+
 private struct FractionView: View {
     let num: Text
     let den: Text
     let size: CGFloat
 
     var body: some View {
-        VStack(spacing: size * 0.08) {
+        FractionLayout(size: size) {
             num.fixedSize()
-            Rectangle().frame(height: max(1, size * 0.055))
             den.fixedSize()
+            Rectangle()
         }
-        .fixedSize()
-        .padding(.horizontal, size * 0.08)
-        // Put the text baseline a little below the fraction bar, like printed maths.
-        .alignmentGuide(.firstTextBaseline) { d in d.height / 2 + size * 0.3 }
     }
 }
 
