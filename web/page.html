@@ -113,7 +113,7 @@ sup{font-size:.68em;line-height:0}
 
 <script>
 /*GEN-START*/
-const VERSION = 4;
+const VERSION = 5;
 
 // ---------- seeded random ----------
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -154,6 +154,11 @@ const TOPICS = {
  fz:{name:'Zeros at the end of factorials', group:'Number', status:'locked', note:'Count the factors of 5.', gen:genFz},
  lcm:{name:'Remainders and LCM', group:'Number', status:'locked', note:'One more than a multiple of the LCM.', gen:genLcm},
  ud:{name:'Units digits of powers', group:'Number', status:'learned', note:'Find the cycle of last digits, then use the remainder. Remainder 0 means the last one in the cycle.', gen:genUd},
+ fn:{name:'Clever arithmetic', group:'Number', status:'locked', note:'Take out a common factor instead of multiplying out.', gen:genFn},
+ rm:{name:'Remainders and digit sums', group:'Number', status:'locked', note:'Digit sums give remainders when dividing by 3 or 9.', gen:genRm},
+ pp:{name:'Percentages of percentages', group:'Number', status:'warm', note:'Multiply the decimals. Reverse percentages: divide, never subtract.', gen:genPp},
+ rt:{name:'Ratio changes', group:'Number', status:'locked', note:'Keep the part that does not change fixed.', gen:genRt},
+ wb:{name:'Working backwards', group:'Algebra', status:'locked', note:'Undo each step in reverse order.', gen:genWb},
  np:{name:'Prime numbers', group:'Number', status:'warm', note:'Check each candidate for small factors.', gen:genNp},
  pc:{name:'Percentage changes', group:'Number', status:'warm', note:'Percentage changes multiply, they do not cancel.', gen:genPc},
  mn:{name:'Means and totals', group:'Number', status:'warm', note:'Work with totals, not averages.', gen:genMn},
@@ -161,6 +166,7 @@ const TOPICS = {
  eq:{name:'Equilateral triangle area', group:'Geometry', status:'locked', note:'Area = (√3 ÷ 4) × side².', gen:genEq},
  sh:{name:'Circles and squares', group:'Geometry', status:'locked', note:'Shaded areas between circles and squares.', gen:genSh},
  sc:{name:'Similar shapes', group:'Geometry', status:'locked', note:'Areas scale by k², volumes by k³.', gen:genSc},
+ co:{name:'Coordinates and reflections', group:'Geometry', status:'locked', note:'Reflecting changes signs or swaps coordinates.', gen:genCo},
  ca:{name:'Clock angles', group:'Geometry', status:'locked', note:'The hour hand moves too.', gen:genCa},
  ra:{name:'Angle ratios', group:'Geometry', status:'warm', note:'Share 180° between the parts.', gen:genRa},
  pg:{name:'Regular polygons', group:'Geometry', status:'warm', note:'Exterior angles add to 360°.', gen:genPg},
@@ -172,7 +178,7 @@ const TOPICS = {
  as:{name:'Average speed', group:'Rates', status:'warm', note:'Total distance over total time.', gen:genAs},
  wk:{name:'Working together', group:'Rates', status:'locked', note:'Add the rates, not the times.', gen:genWk},
 };
-const KEYS = {ds:'cmVodGVvbg==',pt:'c3N1YWc=',ca:'bm90d2Vu',eq:'Z25pcnV0',fz:'dGFtcmVm',lcm:'bmFqdW5hbWFy',st:'aWNjYW5vYmlm',nf:'ZWxvb2I=',rd:'ZWNhbGV2b2w=',ix:'cmVpcGFu',sd:'emluYmllbA==',sv:'bm5hbWVpcg==',cq:'cm90bmFj',ap:'cmVscGVr',sc:'ZWNhbHBhbA==',sh:'cmVsdWU=',hs:'dHJlYmxpaA==',dw:'c2V0cmFjc2Vk',wk:'YWl0YXB5aA==',fa:'bGFjc2Fw'};
+const KEYS = {ds:'cmVodGVvbg==',pt:'c3N1YWc=',ca:'bm90d2Vu',eq:'Z25pcnV0',fz:'dGFtcmVm',lcm:'bmFqdW5hbWFy',st:'aWNjYW5vYmlm',nf:'ZWxvb2I=',rd:'ZWNhbGV2b2w=',ix:'cmVpcGFu',sd:'emluYmllbA==',sv:'bm5hbWVpcg==',cq:'cm90bmFj',ap:'cmVscGVr',sc:'ZWNhbHBhbA==',sh:'cmVsdWU=',hs:'dHJlYmxpaA==',dw:'c2V0cmFjc2Vk',wk:'YWl0YXB5aA==',fa:'bGFjc2Fw',fn:'eWhjdWFj',wb:'bGViYQ==',rt:'bmlhbXJlZw==',rm:'ZWduYXJnYWw=',co:'bm5ldg=='};
 
 function genSq(rng, force){
   const v = force || rng.pick(['plus','plus','minus','minus','ab','ab','cube']);
@@ -407,6 +413,94 @@ function genFa(rng){
     wrongs:[[1,n+1],[n-1,n],[n,n+2],[n+1,n+2],[n,2*(n+1)]],
     hint:`${fr(1,'2 × 3')} = ${fr(1,2)} − ${fr(1,3)}. Write every term like that.`,
     explain:`Each term is ${fr(1,'k')} − ${fr(1,'k + 1')}. Almost everything cancels, leaving 1 − ${fr(1,n+1)} = <b>${fracStr(n,n+1)}</b>.`};
+}
+
+
+function genFn(rng){
+  const v=rng.pick(['sq','dist','half']);
+  if(v==='sq'){ const n=rng.pick([99,999,49,51,101,199,25,75,19,39]), ans=n*(n+1);
+    return {variant:'sq'+n, prompt:`What is ${n} × ${n} + ${n}?`, ans, wrongs:[n*n, n*(n+2), (n+1)*(n+1), n*n+2*n, ans+1],
+      hint:`${n} × ${n} + ${n} × 1. Take ${n} out as a common factor.`,
+      explain:`${n} × ${n} + ${n} = ${n} × (${n} + 1) = ${n} × ${n+1} = <b>${ans}</b>.`}; }
+  if(v==='dist'){ const a=rng.int(12,89), b=rng.int(11,89), tot=rng.pick([100,100,200,1000]), c=tot-b, ans=a*tot;
+    return {variant:'dist'+tot, prompt:`What is ${a} × ${b} + ${a} × ${c}?`, ans, wrongs:[a*tot+a, (a+1)*tot, a*b+c, ans/10, ans-a],
+      hint:`Both parts have ${a} in them.`,
+      explain:`${a} × (${b} + ${c}) = ${a} × ${tot} = <b>${ans}</b>.`}; }
+  const n=2*rng.int(600,4999);
+  return {variant:'half', prompt:`What is ${fr(`${n} × ${n}`,`${n} + ${n}`)}?`, ans:n/2, wrongs:[n, 2*n, n*n, 2, n/2+1],
+    hint:`The bottom is 2 × ${n}.`,
+    explain:`${fr(`${n} × ${n}`,`2 × ${n}`)} = ${fr(n,2)} = <b>${n/2}</b>.`};
+}
+
+function genRm(rng){
+  const ds=x=>String(x).split('').reduce((a,d)=>a+ +d,0);
+  const v=rng.pick(['nine','three','prod']);
+  if(v==='prod'){ const a=rng.int(10000,99999), b=rng.int(10000,99999), ra=ds(a)%9, rb=ds(b)%9, ans=(ra*rb)%9;
+    return {variant:'prod', prompt:`What is the remainder when ${a} × ${b} is divided by 9?`, ans, wrongs:[0,1,2,3,4,5,6,7,8].filter(x=>x!==ans), fmt:v=>String(v),
+      hint:`Find each number's remainder using its digit sum, then multiply the remainders.`,
+      explain:`${a} has digit sum ${ds(a)}, remainder ${ra}. ${b} has digit sum ${ds(b)}, remainder ${rb}. ${ra} × ${rb} = ${ra*rb}, which leaves <b>${ans}</b> when divided by 9.`}; }
+  const k=v==='nine'?9:3, n=rng.int(100000,9999999), ans=n%k;
+  return {variant:v, prompt:`What is the remainder when ${n} is divided by ${k}?`, ans, wrongs:(k===9?[0,1,2,3,4,5,6,7,8]:[0,1,2,3,4,5,6]).filter(x=>x!==ans), fmt:v=>String(v),
+    hint:`Add up the digits. A number and its digit sum leave the same remainder when divided by ${k}.`,
+    explain:`The digit sum is ${ds(n)}, and ${ds(n)} leaves remainder <b>${ans}</b> when divided by ${k}.`};
+}
+
+function genPp(rng){
+  const v=rng.pick(['of','of','rev']);
+  if(v==='of'){ let a,b,n,ans; do{ a=rng.pick([10,20,25,30,40,50,60,75,80]); b=rng.pick([10,20,25,30,40,50,60,75,80]); n=rng.pick([40,60,80,120,200,300,400,500]); ans=a*b*n/10000 }while(!Number.isInteger(ans*10)||ans===0);
+    return {variant:'of', prompt:`What is ${a}% of ${b}% of ${n}?`, ans, wrongs:[(a+b)*n/100, a*b*n/1000, ans*2, n*(a/100), n*(b/100)],
+      hint:`Turn each percentage into a decimal and multiply: ${a/100} × ${b/100} × ${n}.`,
+      explain:`${a/100} × ${b/100} × ${n} = <b>${fmtNum(ans)}</b>.`}; }
+  const p=rng.pick([10,20,25,50]), up=rng.next()<0.6, orig=rng.int(2,30)*(p===25?4:p===50?2:10)*(up?1:1), fin=orig*(up?100+p:100-p)/100;
+  return {variant:up?'revup':'revdown', prompt:`After a ${p}% ${up?'increase':'decrease'}, a price is £${fmtNum(fin)}. What was the original price?`, ans:orig, fmt:v=>`£${fmtNum(v)}`,
+    wrongs:[up?fin*(100-p)/100:fin*(100+p)/100, fin, up?fin-p:fin+p, orig+p/5, orig*2],
+    hint:`The new price is ${up?100+p:100-p}% of the original. Divide, don't ${up?'subtract':'add'} ${p}%.`,
+    explain:`£${fmtNum(fin)} ÷ ${fmtNum((up?100+p:100-p)/100)} = <b>£${fmtNum(orig)}</b>. Taking ${p}% of the new price would give the wrong answer.`};
+}
+
+function genRt(rng){
+  const [a,b,c,d]=rng.pick([[3,5,5,3],[2,3,3,2],[1,2,2,1],[3,4,5,4],[2,5,1,1],[1,3,2,3],[3,5,1,1],[2,7,1,2]]);
+  const m=rng.int(1,4), D=b*d*m, before=a*d*m, after=c*b*m, n=after-before;
+  const [x,y]=rng.pick([['cats','dogs'],['boys','girls'],['red counters','blue counters']]);
+  return {variant:`${a}${b}${c}${d}`, prompt:`The ratio of ${x} to ${y} is ${a} : ${b}. Then ${n} more ${x} arrive, but no more ${y}, and the ratio becomes ${c} : ${d}. How many ${y} are there?`, ans:D,
+    wrongs:[before, after, n, D+n, D/2],
+    hint:`The number of ${y} doesn't change. Write both ratios with the same number for ${y}.`,
+    explain:`${a} : ${b} = ${a*d} : ${b*d} and ${c} : ${d} = ${c*b} : ${d*b}. The ${y} stay at ${b*d} parts, and the ${x} go up by ${c*b-a*d} parts = ${n}, so each part is ${m}. ${y[0].toUpperCase()+y.slice(1)}: ${b*d} × ${m} = <b>${D}</b>.`};
+}
+
+function genWb(rng){
+  if(rng.next()<0.5){
+    const x=rng.int(3,30)*2, s=rng.int(2,9), m=rng.int(2,5), out=(x/2-s)*m;
+    if(out<=0) return genWb(rng);
+    return {variant:'machine', prompt:`I think of a number. I halve it, subtract ${s}, then multiply by ${m}. The answer is ${out}. What was my number?`, ans:x,
+      wrongs:[(out/m+s), (out/m-s)*2, out*2/m+s, x+2, (out+s)*2/m],
+      hint:`Start from ${out} and undo each step in reverse order.`,
+      explain:`${out} ÷ ${m} = ${out/m}, then + ${s} = ${out/m+s}, then × 2 = <b>${x}</b>.`};
+  }
+  const [p,q]=rng.pick([[6,13],[4,3],[5,4],[3,4],[6,5],[4,5],[3,2],[5,6]]), k=rng.int(1,4), T=p*q*k, left=k*(p-1)*(q-1);
+  return {variant:`frac${p}${q}`, prompt:`Jill gives ${fr(1,p)} of her sweets to Jan, then ${fr(1,q)} of the sweets she has left to Jas. She is left with ${left} sweets. How many did she start with?`, ans:T,
+    wrongs:[left+Math.round(T/p)+Math.round(T/q), Math.round(left*(1+1/p+1/q)), T+k, T-k*p, left*2],
+    hint:`After giving away ${fr(1,q)}, she keeps ${fr(q-1,q)} of what she had. Work backwards from ${left}.`,
+    explain:`Before Jas: ${left} ÷ ${fr(q-1,q)} = ${left*q/(q-1)}. Before Jan: ${left*q/(q-1)} ÷ ${fr(p-1,p)} = <b>${T}</b>.`};
+}
+
+function genCo(rng){
+  const m=v=>v<0?`−${-v}`:String(v), pt=(x,y)=>`(${m(x)}, ${m(y)})`;
+  const v=rng.pick(['x','y','yx','ynx','line']);
+  let a,b; do{ a=rng.int(-6,6); b=rng.int(-6,6) }while(a===0||b===0||Math.abs(a)===Math.abs(b));
+  if(v==='line'){ const g=rng.pick([2,3,4,-2,-3]), c=rng.pick([1,2,3,5,-1,-4]);
+    const L=(gg,cc)=>`<i>y</i> = ${gg===1?'':gg===-1?'−':m(gg)}<i>x</i>${cc===0?'':cc>0?` + ${cc}`:` − ${-cc}`}`;
+    return {variant:'line', prompt:`The line ${L(g,c)} is reflected in the <i>x</i>-axis. What is the equation of the new line?`, ans:L(-g,-c), fmt:v=>v,
+      wrongs:[L(g,-c), L(-g,c), L(g,c), `<i>x</i> = ${m(g)}<i>y</i>${c>0?` + ${c}`:` − ${-c}`}`, L(-c,-g)],
+      hint:`Reflecting in the <i>x</i>-axis turns every <i>y</i> into −<i>y</i>.`,
+      explain:`Replace <i>y</i> with −<i>y</i>: −<i>y</i> = ${m(g)}<i>x</i> ${c>0?'+':'−'} ${Math.abs(c)}, so ${L(-g,-c)}.`}; }
+  const img={x:[a,-b],y:[-a,b],yx:[b,a],ynx:[-b,-a]}[v];
+  const name={x:'the <i>x</i>-axis',y:'the <i>y</i>-axis',yx:'the line <i>y</i> = <i>x</i>',ynx:'the line <i>y</i> = −<i>x</i>'}[v];
+  const rule={x:'The <i>x</i>-coordinate stays the same and the <i>y</i>-coordinate changes sign.',y:'The <i>y</i>-coordinate stays the same and the <i>x</i>-coordinate changes sign.',yx:'Reflecting in <i>y</i> = <i>x</i> swaps the coordinates.',ynx:'Reflecting in <i>y</i> = −<i>x</i> swaps the coordinates and changes both signs.'}[v];
+  return {variant:v, prompt:`The point ${pt(a,b)} is reflected in ${name}. Where does it end up?`, ans:pt(...img), fmt:v=>v,
+    wrongs:[pt(a,-b),pt(-a,b),pt(b,a),pt(-b,-a),pt(-a,-b),pt(b,-a)],
+    hint:`Try it with a quick sketch of the axes.`,
+    explain:`${rule} So ${pt(a,b)} goes to <b>${pt(...img)}</b>.`};
 }
 
 function genUd(rng){
