@@ -4,7 +4,7 @@ name: Publish practice page
 on:
   push:
     branches: [main]
-    paths: ["web/**", "build-site.sh", ".github/workflows/pages.yml"]
+    paths: ["web/**", "tools/**", "build-site.sh", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:

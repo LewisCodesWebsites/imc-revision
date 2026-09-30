@@ -3,7 +3,7 @@ name: Build unsigned IPA
 on:
   push:
     branches: [main]
-    paths: ["ios/**", "web/**", ".github/workflows/ipa.yml"]
+    paths: ["ios/**", "tools/**", ".github/workflows/ipa.yml"]
   workflow_dispatch:
 
 permissions:
@@ -22,10 +22,10 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
-      - name: Bundle offline copy of the page
+      - name: Bundle the question engine (offline copy)
         run: |
           ./build-site.sh
-          cp _site/index.html ios/IMCDaily/offline.html
+          cp _site/engine.js ios/IMCDaily/engine.js
 
       - name: Generate Xcode project
         working-directory: ios
@@ -34,6 +34,7 @@ jobs:
       - name: Build (no signing)
         working-directory: ios
         run: |
+          set -o pipefail
           xcodebuild \
             -project IMCDaily.xcodeproj \
             -scheme IMCDaily \
@@ -42,7 +43,8 @@ jobs:
             -destination 'generic/platform=iOS' \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build | tail -n 40
+            build 2>&1 | tee build.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log
           test -d build/Build/Products/Release-iphoneos/IMCDaily.app
 
       - name: Package IPA
