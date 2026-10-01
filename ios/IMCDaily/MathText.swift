@@ -127,7 +127,7 @@ private func inlineText(_ nodes: [MathNode], size: CGFloat) -> Text {
             if italic { piece = piece.italic() }
             result = result + piece
         case .sup(let inner):
-            result = result + Text("\u{200A}").font(mathFont(size, bold: false)) + inlineText(inner, size: size * 0.68).baselineOffset(size * 0.42)
+            result = result + Text("\u{2009}").font(mathFont(size, bold: false)) + inlineText(inner, size: size * 0.68).baselineOffset(size * 0.42)
         case .frac(let a, let b):
             result = result + inlineText(a, size: size) + Text("/").font(mathFont(size, bold: false)) + inlineText(b, size: size)
         }
@@ -181,7 +181,7 @@ private func tokenize(_ nodes: [MathNode], size: CGFloat) -> [MathToken] {
             }
             emitWord()
         case .sup(let inner):
-            append(Text("\u{200A}").font(mathFont(size, bold: false)) + inlineText(inner, size: size * 0.68).baselineOffset(size * 0.42))
+            append(Text("\u{2009}").font(mathFont(size, bold: false)) + inlineText(inner, size: size * 0.68).baselineOffset(size * 0.42))
         case .frac(let a, let b):
             flush()
             tokens.append(MathToken(kind: .frac(inlineText(a, size: size * 0.86), inlineText(b, size: size * 0.86)),

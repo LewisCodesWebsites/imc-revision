@@ -1,0 +1,103 @@
+{
+ "version": 1,
+ "papers": [
+  {
+   "year": 2020,
+   "pdf": "https://ukmt.org.uk/wp-content/uploads/2023/08/IMC_2020_q.pdf",
+   "solutions": "https://ukmt.org.uk/wp-content/uploads/2023/08/IMC_2020_s.pdf",
+   "answers": "AEBDDCBEEBEBCAAEECBDBCAAA",
+   "boundaries": {
+    "bronze": 60,
+    "silver": 72,
+    "gold": 89,
+    "pink": 89,
+    "maclaurin": 120
+   },
+   "note": "Grade boundaries were unusually high this year."
+  },
+  {
+   "year": 2021,
+   "pdf": "https://ukmt.org.uk/wp-content/uploads/2023/08/IMC-2021-Paper.pdf",
+   "solutions": "https://ukmt.org.uk/wp-content/uploads/2023/08/IMC-2021-Solutions.pdf",
+   "answers": "BACADECBDDEEABDEDCABDEBBE",
+   "boundaries": {
+    "bronze": 55,
+    "silver": 68,
+    "gold": 86,
+    "pink": 86,
+    "maclaurin": 118
+   },
+   "note": "Sat at home during lockdown, so the boundaries were unusually high."
+  },
+  {
+   "year": 2022,
+   "pdf": "https://ukmt.org.uk/wp-content/uploads/2023/08/IMC-2022-Paper-1.pdf",
+   "solutions": "https://ukmt.org.uk/wp-content/uploads/2023/08/IMC_2022_Solutions.pdf",
+   "answers": "BABDCDEAECEACDEDCBADBDEBC",
+   "boundaries": {
+    "bronze": 50,
+    "silver": 65,
+    "gold": 81,
+    "pink": 81,
+    "maclaurin": 117
+   },
+   "note": null
+  },
+  {
+   "year": 2023,
+   "pdf": "https://ukmt.org.uk/wp-content/uploads/2023/08/IMC_2023_Paper-1.pdf",
+   "solutions": "https://ukmt.org.uk/wp-content/uploads/2023/08/IMC-2023-Solutions-.pdf",
+   "answers": "DABDBEBEBDBEACAACBEBAEDCD",
+   "boundaries": {
+    "bronze": 42,
+    "silver": 55,
+    "gold": 71,
+    "pink": 77,
+    "maclaurin": 103
+   },
+   "note": null
+  },
+  {
+   "year": 2024,
+   "pdf": "https://ukmt.org.uk/wp-content/uploads/2024/02/IMC_2024-Paper.pdf",
+   "solutions": "https://ukmt.org.uk/wp-content/uploads/2024/02/IMC-2024-Solutions.pdf",
+   "answers": "DAADCCBCDBCDCBBDEEADEEBCE",
+   "boundaries": {
+    "bronze": 47,
+    "silver": 61,
+    "gold": 77,
+    "pink": 84,
+    "maclaurin": 110
+   },
+   "note": null
+  },
+  {
+   "year": 2025,
+   "pdf": "https://ukmt.org.uk/wp-content/uploads/2025/01/IMC-2025-Paper.pdf",
+   "solutions": "https://ukmt.org.uk/wp-content/uploads/2025/01/IMC-2025-Solutions.pdf",
+   "answers": "ADEDECBAACAEEADBDEDBBDDCB",
+   "boundaries": {
+    "bronze": 37,
+    "silver": 52,
+    "gold": 72,
+    "pink": 82,
+    "maclaurin": 116
+   },
+   "note": "Save this one for January."
+  },
+  {
+   "year": 2026,
+   "pdf": "https://ukmt.org.uk/wp-content/uploads/2026/01/IMC_Paper_2026.pdf",
+   "solutions": "https://ukmt.org.uk/wp-content/uploads/2026/01/IMC_Solutions_2026.pdf",
+   "answers": "EDDEADBADBBEECDCACDBACBBC",
+   "boundaries": {
+    "bronze": 35,
+    "silver": 46,
+    "gold": 61,
+    "pink": 66,
+    "maclaurin": 98
+   },
+   "note": "The most recent paper. Save it for your final mock."
+  }
+ ]
+}

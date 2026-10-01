@@ -12,6 +12,6 @@ gen = src.split('/*GEN-START*/', 1)[1].split('/*GEN-END*/', 1)[0]
 api = open('tools/engine-api.js', encoding='utf-8').read()
 open('_site/engine.js', 'w', encoding='utf-8').write('"use strict";\n' + gen + api)
 PY
-cp web/manifest.webmanifest web/*.png _site/
+cp web/manifest.webmanifest web/papers.json web/*.png _site/
 touch _site/.nojekyll
 echo "Built _site/index.html and _site/engine.js"

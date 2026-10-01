@@ -28,11 +28,26 @@ struct RootView: View {
                 .tabItem { Label("Today", systemImage: "flame") }
             TopicsView()
                 .tabItem { Label("Topics", systemImage: "square.grid.2x2") }
+            PapersView()
+                .tabItem { Label("Papers", systemImage: "doc.text") }
         }
         .fullScreenCover(item: $model.session) { session in
             SessionView(session: session)
                 .environmentObject(model)
                 .tint(.imcAccent)
         }
+        .fullScreenCover(isPresented: examPresented) {
+            ExamContainer()
+                .environmentObject(model)
+                .tint(.imcAccent)
+        }
+    }
+
+    /// Shown while a paper is being sat, and for its results straight after.
+    private var examPresented: Binding<Bool> {
+        Binding(
+            get: { model.state.activeExam != nil || model.examResult != nil },
+            set: { shown in if !shown { model.examResult = nil } }
+        )
     }
 }

@@ -5,3 +5,4 @@ ios/IMCDaily/engine.js
 Payload/
 *.ipa
 .DS_Store
+ios/IMCDaily/papers.json

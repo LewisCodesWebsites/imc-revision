@@ -15,6 +15,8 @@ struct SavedState: Codable {
     var stats: [String: TopicStat] = [:]
     var unlocked: [String] = []
     var lastCode: String? = nil
+    var paperAttempts: [PaperAttempt]? = nil   // optional so older saved data still loads
+    var activeExam: ExamSession? = nil
 }
 
 struct PracticeSession: Identifiable {
@@ -33,8 +35,10 @@ final class AppModel: ObservableObject {
 
     @Published private(set) var engine: QuestionEngine?
     @Published private(set) var engineSource = "Built-in questions"
-    @Published private(set) var state: SavedState
+    @Published var state: SavedState
     @Published var session: PracticeSession?
+    @Published var papers: [PaperInfo] = []
+    @Published var examResult: PaperAttempt?
     @Published private(set) var lastRefresh: Date?
 
     private let stateKey = "imcDaily.state.v1"
@@ -48,6 +52,7 @@ final class AppModel: ObservableObject {
             state = SavedState()
         }
         loadLocalEngine()
+        loadLocalPapers()
     }
 
     // MARK: Engine loading
@@ -80,6 +85,7 @@ final class AppModel: ObservableObject {
         guard !refreshing else { return }
         refreshing = true
         defer { refreshing = false }
+        await refreshPapers()
 
         var request = URLRequest(url: Self.siteBase.appendingPathComponent("engine.js"))
         request.cachePolicy = .reloadIgnoringLocalCacheData
@@ -197,7 +203,7 @@ final class AppModel: ObservableObject {
         return Int((db.timeIntervalSince(da) / 86_400).rounded())
     }
 
-    private func save() {
+    func save() {
         if let data = try? JSONEncoder().encode(state) {
             UserDefaults.standard.set(data, forKey: stateKey)
         }

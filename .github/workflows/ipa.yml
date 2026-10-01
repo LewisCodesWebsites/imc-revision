@@ -26,6 +26,7 @@ jobs:
         run: |
           ./build-site.sh
           cp _site/engine.js ios/IMCDaily/engine.js
+          cp _site/papers.json ios/IMCDaily/papers.json
 
       - name: Generate Xcode project
         working-directory: ios
