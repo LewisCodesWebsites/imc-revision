@@ -563,7 +563,7 @@ function genAs(rng){
 
 // ----- locked topics (ready for later) -----
 function genPt(rng){
-  const base=[[3,4,5],[5,12,13],[8,15,17],[7,24,25],[20,21,29],[9,40,41]];
+  const base=[[3,4,5],[5,12,13],[8,15,17],[7,24,25],[9,40,41]];
   for(let tries=0;tries<50;tries++){
     const t=rng.pick(base), k=rng.int(1,4), [a,b,c]=t.map(x=>x*k), P=a+b+c;
     if(P>150) continue;
@@ -572,8 +572,8 @@ function genPt(rng){
     const ans=a*b/2;
     return {variant:`${a}-${b}-${c}`, prompt:`A right-angled triangle has whole-number side lengths and a perimeter of ${P}. What is its area?`, ans,
       wrongs:[a*b,a*c/2,b*c/2,ans+P,c*c/4],
-      hint:`Common triples: 3, 4, 5 and 5, 12, 13 and 8, 15, 17. Try multiples of them.`,
-      explain:`The sides are ${a}, ${b}, ${c} (${t.join(', ')} × ${k}). Area = ${a} × ${b} ÷ 2 = <b>${ans}</b>.`};
+      hint:`Each triple has its own perimeter: 3-4-5 is 12, 5-12-13 is 30, 8-15-17 is 40, 7-24-25 is 56, 9-40-41 is 90. Which one goes into ${P}?`,
+      explain:`The sides are ${a}, ${b}, ${c} (${t.join(', ')} × ${k}). Area = ${a} × ${b} ÷ 2 = <b>${ans}</b>. Don't forget the ÷ 2: a right-angled triangle is half a rectangle.`};
   }
   return genPt(rng);
 }
