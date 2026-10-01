@@ -119,8 +119,12 @@ struct PaperDetailView: View {
                     Button {
                         confirmStart = true
                     } label: {
-                        Label("Start timed paper", systemImage: "timer")
-                            .frame(maxWidth: .infinity)
+                        HStack(spacing: 8) {
+                            Image(systemName: "timer")
+                            Text("Start timed paper")
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)

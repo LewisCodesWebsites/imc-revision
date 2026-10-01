@@ -21,6 +21,7 @@ struct Question: Codable, Identifiable, Hashable {
     let hint: String
     let explain: String
     let stretch: Bool
+    var diagram: Diagram? = nil
 
     var id: String { "\(topic).\(variant)#\(seed)" }
 }

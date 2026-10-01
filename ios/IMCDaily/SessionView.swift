@@ -49,6 +49,10 @@ struct SessionView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 4)
 
+                    if let diagram = question.diagram {
+                        DiagramView(diagram: diagram)
+                    }
+
                     VStack(spacing: 10) {
                         ForEach(Array(question.options.enumerated()), id: \.offset) { i, option in
                             OptionButton(letter: String("ABCDE".map { $0 }[min(i, 4)]), markup: option,

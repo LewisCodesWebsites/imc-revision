@@ -113,7 +113,7 @@ sup{font-size:.68em;line-height:0}
 
 <script>
 /*GEN-START*/
-const VERSION = 5;
+const VERSION = 6;
 
 // ---------- seeded random ----------
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -169,6 +169,7 @@ const TOPICS = {
  co:{name:'Coordinates and reflections', group:'Geometry', status:'locked', note:'Reflecting changes signs or swaps coordinates.', gen:genCo},
  ca:{name:'Clock angles', group:'Geometry', status:'locked', note:'The hour hand moves too.', gen:genCa},
  ra:{name:'Angle ratios', group:'Geometry', status:'warm', note:'Share 180° between the parts.', gen:genRa},
+ ag:{name:'Angles with regular shapes', group:'Geometry', status:'locked', note:'Mark known angles first, then look for isosceles triangles.', gen:genAg},
  pg:{name:'Regular polygons', group:'Geometry', status:'warm', note:'Exterior angles add to 360°.', gen:genPg},
  st:{name:'Staircase counting', group:'Counting', status:'locked', note:'Build up from small cases.', gen:genSt},
  hs:{name:'Handshakes and pairs', group:'Counting', status:'locked', note:'Count pairs, then avoid double counting.', gen:genHs},
@@ -178,7 +179,7 @@ const TOPICS = {
  as:{name:'Average speed', group:'Rates', status:'warm', note:'Total distance over total time.', gen:genAs},
  wk:{name:'Working together', group:'Rates', status:'locked', note:'Add the rates, not the times.', gen:genWk},
 };
-const KEYS = {ds:'cmVodGVvbg==',pt:'c3N1YWc=',ca:'bm90d2Vu',eq:'Z25pcnV0',fz:'dGFtcmVm',lcm:'bmFqdW5hbWFy',st:'aWNjYW5vYmlm',nf:'ZWxvb2I=',rd:'ZWNhbGV2b2w=',ix:'cmVpcGFu',sd:'emluYmllbA==',sv:'bm5hbWVpcg==',cq:'cm90bmFj',ap:'cmVscGVr',sc:'ZWNhbHBhbA==',sh:'cmVsdWU=',hs:'dHJlYmxpaA==',dw:'c2V0cmFjc2Vk',wk:'YWl0YXB5aA==',fa:'bGFjc2Fw',fn:'eWhjdWFj',wb:'bGViYQ==',rt:'bmlhbXJlZw==',rm:'ZWduYXJnYWw=',co:'bm5ldg=='};
+const KEYS = {ds:'cmVodGVvbg==',pt:'c3N1YWc=',ca:'bm90d2Vu',eq:'Z25pcnV0',fz:'dGFtcmVm',lcm:'bmFqdW5hbWFy',st:'aWNjYW5vYmlm',nf:'ZWxvb2I=',rd:'ZWNhbGV2b2w=',ix:'cmVpcGFu',sd:'emluYmllbA==',sv:'bm5hbWVpcg==',cq:'cm90bmFj',ap:'cmVscGVr',sc:'ZWNhbHBhbA==',sh:'cmVsdWU=',hs:'dHJlYmxpaA==',dw:'c2V0cmFjc2Vk',wk:'YWl0YXB5aA==',fa:'bGFjc2Fw',fn:'eWhjdWFj',wb:'bGViYQ==',rt:'bmlhbXJlZw==',rm:'ZWduYXJnYWw=',co:'bm5ldg==',ag:'ZGlsY3Vl'};
 
 function genSq(rng, force){
   const v = force || rng.pick(['plus','plus','minus','minus','ab','ab','cube']);
@@ -359,18 +360,81 @@ function genSc(rng){
     explain:`Volumes multiply by (${fr(q,p)})<sup>3</sup> = ${fracStr(q*q*q,p*p*p)}. ${V} × ${fracStr(q*q*q,p*p*p)} = <b>${fmtNum(ans)} cm³</b>.`};
 }
 
+// ---- Diagram helpers. Coordinates are maths-style (y goes up); the app draws them. ----
+const D={
+  poly:(pts,fill='none')=>({t:'poly',pts,fill}),
+  circle:(c,r,fill='none')=>({t:'circle',c,r,fill}),
+  sector:(c,r,a0,a1,fill='none')=>({t:'sector',c,r,a0,a1,fill}),
+  line:(a,b,dash=false)=>({t:'line',a,b,dash}),
+  label:(at,text,anchor='c')=>({t:'label',at,text,anchor}),
+  dot:(at)=>({t:'dot',at}),
+  angle:(at,p1,p2,text='x')=>({t:'angle',at,p1,p2,text}),
+};
+function regPoly(n,A,B,side){
+  const pts=[A,B]; let [x,y]=B, dx=B[0]-A[0], dy=B[1]-A[1]; const e=side*2*Math.PI/n, c=Math.cos(e), s=Math.sin(e);
+  for(let i=0;i<n-2;i++){ [dx,dy]=[dx*c-dy*s,dx*s+dy*c]; x+=dx; y+=dy; pts.push([x,y]); }
+  return pts;
+}
+function outward(p,centre,dist){ const dx=p[0]-centre[0], dy=p[1]-centre[1], L=Math.hypot(dx,dy)||1; return [p[0]+dx/L*dist, p[1]+dy/L*dist]; }
+
 function genSh(rng){
-  const r=rng.int(1,5), k=r*r, tm=(c,e)=>c===1?e:`${c}(${e})`;
-  if(rng.next()<0.5){ const ans=tm(k,'4 − π');
-    return {variant:`out${r}`, prompt:`A circle of radius ${r} fits exactly inside a square, touching all four sides. What is the area inside the square but outside the circle?`, ans, fmt:v=>v,
-      wrongs:[tm(k,'π − 2'), `${4*k} − π`, tm(2*k,'4 − π'), tm(k,'2 − π')+'', `${k}π`],
-      hint:`The square's side is the circle's diameter, ${2*r}.`,
-      explain:`Square: ${2*r}<sup>2</sup> = ${4*k}. Circle: π × ${r}<sup>2</sup> = ${k===1?'':k}π. Difference: <b>${ans}</b>.`}; }
-  const ans=tm(k,'π − 2');
-  return {variant:`in${r}`, prompt:`A square is drawn inside a circle of radius ${r}, with its four corners on the circle. What is the area inside the circle but outside the square?`, ans, fmt:v=>v,
-    wrongs:[tm(k,'4 − π'), `${k===1?'':k}π − ${4*k}`, tm(2*k,'π − 2'), tm(k,'π − 1'), `${k===1?'':k}π − ${k}`],
-    hint:`The square's diagonal is the diameter, ${2*r}. Area of a square = diagonal² ÷ 2.`,
-    explain:`Square: ${2*r}<sup>2</sup> ÷ 2 = ${2*k}. Circle: ${k===1?'':k}π. Difference: <b>${ans}</b>.`};
+  const r=rng.int(1,5), k=r*r, tm=(c,e)=>c===1?e:`${c}(${e})`, kp=k===1?'π':`${k}π`;
+  const v=rng.pick(['out','in','quarter']);
+  if(v==='out'){ const ans=tm(k,'4 − π'), S=2*r;
+    return {variant:`out${r}`, prompt:`A circle of radius ${r} fits exactly inside a square, touching all four sides. What is the shaded area?`, ans, fmt:v=>v,
+      wrongs:[tm(k,'π − 2'), `${4*k} − π`, tm(2*k,'4 − π'), tm(k,'2 − π')+'', kp],
+      hint:`The square's side is the circle's diameter, ${S}.`,
+      explain:`Square: ${S}<sup>2</sup> = ${4*k}. Circle: π × ${r}<sup>2</sup> = ${kp}. Shaded: <b>${ans}</b>.`,
+      diagram:{w:S,h:S,items:[D.poly([[0,0],[S,0],[S,S],[0,S]],'shade'),D.circle([r,r],r,'bg'),D.line([r,r],[S,r],true),D.dot([r,r]),D.label([r*1.5,r+S*0.07],String(r)),D.label([r,-S*0.09],String(S))]}}; }
+  if(v==='in'){ const ans=tm(k,'π − 2');
+    return {variant:`in${r}`, prompt:`A square is drawn inside a circle of radius ${r}, with its four corners on the circle. What is the shaded area?`, ans, fmt:v=>v,
+      wrongs:[tm(k,'4 − π'), `${kp} − ${4*k}`, tm(2*k,'π − 2'), tm(k,'π − 1'), `${kp} − ${k}`],
+      hint:`The square's diagonal is the diameter, ${2*r}. Area of a square = diagonal² ÷ 2.`,
+      explain:`Square: ${2*r}<sup>2</sup> ÷ 2 = ${2*k}. Circle: ${kp}. Shaded: <b>${ans}</b>.`,
+      diagram:{w:2*r,h:2*r,items:[D.circle([r,r],r,'shade'),D.poly([[2*r,r],[r,2*r],[0,r],[r,0]],'bg'),D.line([0,r],[2*r,r],true),D.dot([r,r]),D.label([r*0.5,r+r*0.14],String(r))]}}; }
+  const S=2*r, area=S*S, q=area/4, ans=`${area} − ${q===1?'':q}π`;
+  return {variant:`quarter${S}`, prompt:`A quarter circle of radius ${S} is drawn inside a square of side ${S}, centred on one corner. What is the shaded area?`, ans, fmt:v=>v,
+    wrongs:[`${area} − ${area}π`, `${area} − ${2*q}π`, `${q===1?'':q}π`, `${area} − ${q*2}`, `${area} − ${q/2}π`],
+    hint:`Square minus a quarter of a circle of radius ${S}.`,
+    explain:`Square: ${S}<sup>2</sup> = ${area}. Full circle: π × ${S}<sup>2</sup> = ${area}π, so a quarter is ${q===1?'':q}π. Shaded: <b>${ans}</b>.`,
+    diagram:{w:S,h:S,items:[D.poly([[0,0],[S,0],[S,S],[0,S]],'shade'),D.sector([0,0],S,0,90,'bg'),D.line([0,0],[S*0.71,S*0.71],true),D.dot([0,0]),D.label([S*0.3,S*0.42],String(S)),D.label([S/2,-S*0.09],String(S))]}};
+}
+
+function genAg(rng){
+  const nm={3:'equilateral triangle',4:'square',5:'regular pentagon',6:'regular hexagon',8:'regular octagon'};
+  const intA=n=>180-360/n;
+  const v=rng.pick(['gap','gap','inside','outside']);
+  if(v==='gap'){
+    const [n1,n2]=rng.pick([[4,5],[4,6],[5,5],[5,6],[6,6],[4,8],[5,8],[6,8],[8,8],[3,8]]);
+    const A=[0,0],B=[1,0], P1=regPoly(n1,A,B,1), P2=regPoly(n2,A,B,-1), ans=360-intA(n1)-intA(n2);
+    const art=w=>/^[aeiou]/.test(w)?'An '+w:'A '+w;
+    return {variant:`gap${n1}${n2}`, prompt:n1===n2?`Two ${nm[n1]}s share a side, as shown. What is the angle <i>x</i>?`:`${art(nm[n1])} and ${art(nm[n2]).toLowerCase()} share a side, as shown. What is the angle <i>x</i>?`, ans, fmt:deg,
+      wrongs:[intA(n1)+intA(n2)-180, 180-ans, 360-intA(n1), ans+10, ans-10, intA(n1)-intA(n2)||ans+20],
+      hint:`The angles around a point add to 360°. A ${nm[n1]} has interior angles of ${intA(n1)}°.`,
+      explain:`Interior angles: ${nm[n1]} ${intA(n1)}°, ${nm[n2]} ${intA(n2)}°. Around the point: 360° − ${intA(n1)}° − ${intA(n2)}° = <b>${ans}°</b>.`,
+      diagram:{fit:true,items:[D.poly(P1,'soft'),D.poly(P2,'soft2'),D.angle(B,P1[2],P2[2],'x')]}};
+  }
+  const h=Math.sqrt(3)/2, A=[0,0],B=[1,0],C=[1,1],Dd=[0,1], ctr=[0.5,0.5];
+  if(v==='inside'){
+    const E=[0.5,h];
+    const ask=rng.pick([['ADE',Dd,A,E,75],['EDC',Dd,E,C,15],['DEC',E,Dd,C,150]]);
+    const [name,at,p1,p2,ans]=ask;
+    return {variant:`in${name}`, prompt:`<i>ABCD</i> is a square and <i>ABE</i> is an equilateral triangle drawn inside it. What is angle <i>${name}</i>?`, ans, fmt:deg,
+      wrongs:[60,30,45,75,15,150,120,105].filter(x=>x!==ans),
+      hint:`<i>AD</i> = <i>AB</i> = <i>AE</i>, so triangle <i>ADE</i> is isosceles. Angle <i>DAE</i> = 90° − 60° = 30°.`,
+      explain:`Triangle <i>ADE</i> is isosceles with angle <i>DAE</i> = 30°, so angles <i>ADE</i> and <i>AED</i> are each (180° − 30°) ÷ 2 = 75°. Then <i>EDC</i> = 90° − 75° = 15°, and <i>DEC</i> = 180° − 15° − 15° = 150°. Angle <i>${name}</i> = <b>${ans}°</b>.`,
+      diagram:{w:1,h:1,items:[D.poly([A,B,C,Dd],'none'),D.poly([A,B,E],'soft'),D.line(Dd,E),D.line(C,E),D.angle(at,p1,p2,'x'),
+        D.label(outward(A,ctr,0.1),'A'),D.label(outward(B,ctr,0.1),'B'),D.label(outward(C,ctr,0.1),'C'),D.label(outward(Dd,ctr,0.1),'D'),D.label([0.5,h-0.13],'E')]}};
+  }
+  const E=[0.5,1+h];
+  const ask=rng.pick([['DAE',A,Dd,E,15],['AEB',E,A,B,30],['ADE',Dd,A,E,150]]);
+  const [name,at,p1,p2,ans]=ask;
+  return {variant:`out${name}`, prompt:`<i>ABCD</i> is a square and <i>DCE</i> is an equilateral triangle drawn outside it. What is angle <i>${name}</i>?`, ans, fmt:deg,
+    wrongs:[60,30,45,75,15,150,120,105].filter(x=>x!==ans),
+    hint:`<i>DA</i> = <i>DC</i> = <i>DE</i>, so triangle <i>ADE</i> is isosceles. Angle <i>ADE</i> = 90° + 60° = 150°.`,
+    explain:`Triangle <i>ADE</i> is isosceles with angle <i>ADE</i> = 150°, so angles <i>DAE</i> and <i>DEA</i> are each 15°. By symmetry angle <i>CEB</i> is also 15°, so <i>AEB</i> = 60° − 15° − 15° = 30°. Angle <i>${name}</i> = <b>${ans}°</b>.`,
+    diagram:{w:1,h:1+h,items:[D.poly([A,B,C,Dd],'none'),D.poly([Dd,C,E],'soft'),D.line(A,E),D.line(B,E),D.angle(at,p1,p2,'x'),
+      D.label(outward(A,ctr,0.1),'A'),D.label(outward(B,ctr,0.1),'B'),D.label([C[0]+0.08,C[1]-0.02],'C'),D.label([Dd[0]-0.08,Dd[1]-0.02],'D'),D.label([E[0],E[1]+0.08],'E')]}};
 }
 
 function genHs(rng){

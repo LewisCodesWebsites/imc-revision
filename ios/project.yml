@@ -5,8 +5,8 @@ options:
     iOS: "16.0"
 settings:
   base:
-    MARKETING_VERSION: "2.2"
-    CURRENT_PROJECT_VERSION: "4"
+    MARKETING_VERSION: "2.3"
+    CURRENT_PROJECT_VERSION: "5"
 targets:
   IMCDaily:
     type: application
