@@ -13,7 +13,7 @@ struct ResultsView: View {
         ScrollView {
             VStack(spacing: 16) {
                 Card {
-                    SectionLabel(session.only == nil ? "Daily practice finished" : "Topic drill finished")
+                    SectionLabel(session.endless ? "Endless finished" : (session.only == nil ? "Daily practice finished" : "Topic drill finished"))
                     Text("\(count(.correct)) / \(results.count)")
                         .font(.system(size: 52, weight: .bold, design: .rounded))
                         .monospacedDigit()

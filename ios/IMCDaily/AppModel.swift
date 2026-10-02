@@ -24,8 +24,9 @@ struct PracticeSession: Identifiable {
     let seed: Int
     let only: String?
     let questions: [Question]
+    var endless = false
     let started = Date()
-    var mode: String { only == nil ? "daily" : "drill" }
+    var mode: String { endless ? "endless" : (only == nil ? "daily" : "drill") }
 }
 
 @MainActor
@@ -142,6 +143,28 @@ final class AppModel: ObservableObject {
         session = PracticeSession(seed: seed, only: only, questions: questions)
     }
 
+    /// Endless mode: mixed questions until you press End.
+    func startEndless() {
+        guard let engine else { return }
+        let seed = Int.random(in: 100_000...999_999)
+        let questions = engine.plan(seed: seed, stats: state.stats, size: 8, only: nil, unlocked: state.unlocked)
+        guard !questions.isEmpty else { return }
+        session = PracticeSession(seed: seed, only: nil, questions: questions, endless: true)
+    }
+
+    /// Another batch for endless mode, skipping anything asked recently.
+    func moreQuestions(avoiding seen: [Question]) -> [Question] {
+        guard let engine else { return [] }
+        let recent = Set(seen.suffix(40).map(\.prompt))
+        for _ in 0..<3 {
+            let batch = engine.plan(seed: Int.random(in: 100_000...999_999), stats: state.stats, size: 8,
+                                    only: nil, unlocked: state.unlocked)
+                .filter { !recent.contains($0.prompt) }
+            if !batch.isEmpty { return batch }
+        }
+        return []
+    }
+
     func record(_ mark: Mark, topic: String) {
         var s = state.stats[topic] ?? TopicStat()
         switch mark {
@@ -156,7 +179,8 @@ final class AppModel: ObservableObject {
     /// Called when a session ends. Updates the streak and returns the code for Claude.
     func finish(_ session: PracticeSession, results: [AnswerRecord]) -> String {
         let today = Self.dayString(Date())
-        if session.only == nil, results.count == session.questions.count, state.lastDone != today {
+        let fullSet = session.endless ? results.count >= 8 : results.count == session.questions.count
+        if session.only == nil, fullSet, state.lastDone != today {
             if let last = state.lastDone, Self.dayDiff(last, today) == 1 {
                 state.streak += 1
             } else {
@@ -166,7 +190,7 @@ final class AppModel: ObservableObject {
         }
         let meta = CodeMeta(date: today, app: "ios", mode: session.mode, only: session.only, seed: session.seed,
                             unlocked: state.unlocked, totalSecs: Int(Date().timeIntervalSince(session.started)),
-                            planned: session.questions.count)
+                            planned: session.endless ? results.count : session.questions.count)
         let code = engine?.sessionCode(meta: meta, results: results) ?? ""
         state.lastCode = code
         save()

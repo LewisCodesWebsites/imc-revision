@@ -11,9 +11,16 @@ struct SessionView: View {
     @State private var questionStart = Date()
     @State private var confirmEnd = false
     @State private var finishedCode: String? = nil
+    @State private var questions: [Question]
 
-    private var question: Question { session.questions[index] }
-    private var isLast: Bool { index == session.questions.count - 1 }
+    init(session: PracticeSession) {
+        self.session = session
+        _questions = State(initialValue: session.questions)
+    }
+
+    private var question: Question { questions[index] }
+    private var isLast: Bool { !session.endless && index == questions.count - 1 }
+    private var correctSoFar: Int { results.filter { $0.mark == .correct }.count }
     private var answered: Bool { choice != nil }
 
     var body: some View {
@@ -38,7 +45,9 @@ struct SessionView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 8) {
-                        ProgressView(value: Double(index + (answered ? 1 : 0)), total: Double(session.questions.count))
+                        if !session.endless {
+                            ProgressView(value: Double(index + (answered ? 1 : 0)), total: Double(questions.count))
+                        }
                         Text(topicLine)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -84,7 +93,7 @@ struct SessionView: View {
             }
         }
         .safeAreaInset(edge: .bottom) { bottomBar }
-        .navigationTitle(session.only == nil ? "Daily practice" : "Topic drill")
+        .navigationTitle(session.endless ? "Endless" : (session.only == nil ? "Daily practice" : "Topic drill"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -100,7 +109,9 @@ struct SessionView: View {
     }
 
     private var topicLine: String {
-        var s = "Question \(index + 1) of \(session.questions.count)"
+        var s = session.endless
+            ? "Question \(index + 1) · \(correctSoFar) right so far"
+            : "Question \(index + 1) of \(questions.count)"
         if let t = model.topic(question.topic) { s += " · \(t.name)" }
         if question.stretch { s += " · stretch" }
         return s
@@ -180,6 +191,10 @@ struct SessionView: View {
         if isLast {
             end()
         } else {
+            if session.endless && index + 2 >= questions.count {
+                questions += model.moreQuestions(avoiding: questions)
+            }
+            guard index + 1 < questions.count else { end(); return }
             index += 1
             choice = nil
             hintShown = false

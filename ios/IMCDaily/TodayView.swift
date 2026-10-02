@@ -25,7 +25,10 @@ struct TodayView: View {
                         todayCard
                     }
 
-                    if model.engine != nil { drillCard }
+                    if model.engine != nil {
+                        endlessCard
+                        drillCard
+                    }
 
                     Text("Challenge day: Wednesday 27 January 2027. No calculator. Work on paper.")
                         .font(.footnote)
@@ -74,6 +77,23 @@ struct TodayView: View {
                 model.startSession()
             } label: {
                 Text("Do another set").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+        }
+    }
+
+    private var endlessCard: some View {
+        Card {
+            SectionLabel("Endless")
+            Text("Mixed questions until you press End. Eight or more counts for your streak.")
+                .foregroundStyle(.secondary)
+            Button {
+                Haptics.tap()
+                model.startEndless()
+            } label: {
+                Label("Start endless", systemImage: "infinity")
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
             .controlSize(.large)
